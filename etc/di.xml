@@ -1,0 +1,53 @@
+<?xml version="1.0"?><!--
+  ~ Copyright (C) Licentia, Unipessoal LDA
+  ~
+  ~ NOTICE OF LICENSE
+  ~
+  ~  This source file is subject to the EULA
+  ~  that is bundled with this package in the file LICENSE.txt.
+  ~  It is also available through the world-wide-web at this URL:
+  ~  https://www.greenflyingpanda.com/panda-license.txt
+  ~
+  ~  @title      Licentia Panda - Magento® Sales Automation Extension
+  ~  @package    Licentia
+  ~  @author     Bento Vilas Boas <bento@licentia.pt>
+  ~  @copyright  Copyright (c) Licentia - https://licentia.pt
+  ~  @license    https://www.greenflyingpanda.com/panda-license.txt
+  ~
+  -->
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:framework:ObjectManager/etc/config.xsd">
+
+
+
+    <type name="Magento\Framework\View\Element\UiComponent\DataProvider\CollectionFactory">
+        <arguments>
+            <argument name="collections" xsi:type="array">
+                <item name="panda_import_listing_data_source" xsi:type="string">Licentia\Import\Model\ResourceModel\Import\Grid\Collection</item>
+            </argument>
+        </arguments>
+    </type>
+
+    <type name="Licentia\Import\Model\ResourceModel\Import\Grid\Collection">
+        <arguments>
+            <argument name="mainTable" xsi:type="string">panda_import</argument>
+            <argument name="eventPrefix" xsi:type="string">panda_import_grid_collection</argument>
+            <argument name="eventObject" xsi:type="string">panda_import_collection</argument>
+            <argument name="resourceModel" xsi:type="string">Licentia\Import\Model\ResourceModel\Import</argument>
+        </arguments>
+    </type>
+    <virtualType name="pandaImportGridFilterPool" type="Magento\Framework\View\Element\UiComponent\DataProvider\FilterPool">
+        <arguments>
+            <argument name="appliers" xsi:type="array">
+                <item name="regular" xsi:type="object">Magento\Framework\View\Element\UiComponent\DataProvider\RegularFilter</item>
+                <item name="fulltext" xsi:type="object">Magento\Framework\View\Element\UiComponent\DataProvider\FulltextFilter</item>
+            </argument>
+        </arguments>
+    </virtualType>
+    <virtualType name="pandaImportGridDataProvider" type="Magento\Framework\View\Element\UiComponent\DataProvider\DataProvider">
+        <arguments>
+            <argument name="collection" xsi:type="object" shared="false">Licentia\Import\Model\ResourceModel\Import\Collection</argument>
+            <argument name="filterPool" xsi:type="object" shared="false">pandaImportGridFilterPool</argument>
+        </arguments>
+    </virtualType>
+
+</config>

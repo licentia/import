@@ -33,6 +33,9 @@ use phpseclib\Net\SFTP;
 class Import extends \Magento\Framework\Model\AbstractModel
 {
 
+    /**
+     *
+     */
     const XML_PATH_PANDA_IMPORT_TEMPLATE = 'panda/import/failure/template';
 
     /**
@@ -186,6 +189,7 @@ class Import extends \Magento\Framework\Model\AbstractModel
 
     /**
      * @return Import
+     * @throws \Magento\Framework\Exception\LocalizedException
      */
     public function validateBeforeSave()
     {
@@ -339,14 +343,15 @@ class Import extends \Magento\Framework\Model\AbstractModel
 
             if ($this->getAfterImport() == 'archive') {
 
-                if (!@ftp_mlsd($connId, $archiveDir)) {
+                $currentDir = ftp_pwd($connId);
+                if (!ftp_chdir($connId, $archiveDir)) {
                     ftp_mkdir($connId, $archiveDir);
                 }
-
-                if (!@ftp_mlsd($connId, $this->getImportImagesFileDir() . 'archives/')) {
+                ftp_chdir($connId, $currentDir);
+                if (!@ftp_chdir($connId, $this->getImportImagesFileDir() . 'archives/')) {
                     ftp_mkdir($connId, $this->getImportImagesFileDir() . 'archives/');
                 }
-
+                ftp_chdir($connId, $currentDir);
             }
 
             $images = ftp_mlsd($connId, $this->getImportImagesFileDir());
@@ -385,6 +390,7 @@ class Import extends \Magento\Framework\Model\AbstractModel
 
             ftp_close($connId);
         }
+
         if ($this->getServerType() == 'ssh') {
 
             $fileDir = $this->getFileDirectory();
@@ -414,10 +420,10 @@ class Import extends \Magento\Framework\Model\AbstractModel
 
             if ($this->getAfterImport() == 'archive') {
 
-                if (!$sftp->rawlist($archiveDir)) {
+                if (!$sftp->is_dir($archiveDir)) {
                     $sftp->mkdir($archiveDir);
                 }
-                if (!$sftp->rawlist($this->getImportImagesFileDir() . 'archives/')) {
+                if (!$sftp->is_dir($this->getImportImagesFileDir() . 'archives/')) {
                     $sftp->mkdir($this->getImportImagesFileDir() . 'archives/');
                 }
 

@@ -177,72 +177,67 @@ class Import extends \Magento\Framework\Model\AbstractModel
             $localFile = $this->filesystem->getDirectoryWrite(DirectoryList::VAR_DIR)
                                           ->getAbsolutePath('importexport/' . $this->getEntityType() . '.csv');
 
-            $mediaDir = $this->filesystem->getDirectoryWrite(DirectoryList::VAR_DIR)
-                                         ->getAbsolutePath('import/images');
+            $mediaDir = $this->imagesDirProvider->getDirectory()->getAbsolutePath();
 
-            try {
-
-                $binary = $this->getFtpFileMode() == 'binary' ? FTP_BINARY : FTP_ASCII;
-                $connId = ftp_connect($this->getFtpHost());
-                if (!@ftp_login($connId, $this->getFtpUsername(), $this->getFtpPassword())) {
-                    throw new \Magento\Framework\Exception\LocalizedException(__("Can't connect to FTP"));
-                }
-
-                if ($this->getFtpPassiveMode()) {
-                    ftp_pasv($connId, true);
-                }
-
-                if ($this->getAfterImport() == 'archive') {
-
-                    if (!@ftp_mlsd($connId, $archiveDir)) {
-                        ftp_mkdir($connId, $archiveDir);
-                    }
-
-                    if (!@ftp_mlsd($connId, $this->getImportImagesFileDir() . 'archives/')) {
-                        ftp_mkdir($connId, $this->getImportImagesFileDir() . 'archives/');
-                    }
-
-                }
-
-                $images = ftp_mlsd($connId, $this->getImportImagesFileDir());
-
-                foreach ($images as $image) {
-
-                    if ($image['type'] != 'file') {
-                        continue;
-                    }
-
-                    $type = pathinfo($image['name'], PATHINFO_EXTENSION);
-
-                    if (!in_array(strtolower($type), ['png', 'jpg', 'jpeg'])) {
-                        continue;
-                    }
-
-                    ftp_get($connId, $mediaDir . $image['name'], $this->getImportImagesFileDir() . $image['name'],
-                        $binary);
-
-                    if ($this->getAfterImport() == 'archive') {
-                        ftp_rename($connId, $this->getImportImagesFileDir() . $image['name'],
-                            $this->getImportImagesFileDir() . 'archives/' . $image['name']);
-                    }
-                    if ($this->getAfterImport() == 'delete') {
-                        ftp_delete($connId, $this->getImportImagesFileDir() . $image['name']);
-                    }
-                }
-
-                ftp_get($connId, $localFile, $fileName, $binary);
-
-                if ($this->getAfterImport() == 'archive') {
-                    ftp_rename($connId, $fileName, $archiveDir . $this->getFileName());
-                }
-
-                if ($this->getAfterImport() == 'delete') {
-                    ftp_delete($connId, $fileName);
-                }
-
-                ftp_close($connId);
-            } catch (\Exception $e) {
+            $binary = $this->getFtpFileMode() == 'binary' ? FTP_BINARY : FTP_ASCII;
+            $connId = ftp_connect($this->getFtpHost());
+            if (!@ftp_login($connId, $this->getFtpUsername(), $this->getFtpPassword())) {
+                throw new \Magento\Framework\Exception\LocalizedException(__("Can't connect to FTP"));
             }
+
+            if ($this->getFtpPassiveMode()) {
+                ftp_pasv($connId, true);
+            }
+
+            if ($this->getAfterImport() == 'archive') {
+
+                if (!@ftp_mlsd($connId, $archiveDir)) {
+                    ftp_mkdir($connId, $archiveDir);
+                }
+
+                if (!@ftp_mlsd($connId, $this->getImportImagesFileDir() . 'archives/')) {
+                    ftp_mkdir($connId, $this->getImportImagesFileDir() . 'archives/');
+                }
+
+            }
+
+            $images = ftp_mlsd($connId, $this->getImportImagesFileDir());
+
+            foreach ($images as $image) {
+
+                if ($image['type'] != 'file') {
+                    continue;
+                }
+
+                $type = pathinfo($image['name'], PATHINFO_EXTENSION);
+
+                if (!in_array(strtolower($type), ['png', 'jpg', 'jpeg'])) {
+                    continue;
+                }
+
+                ftp_get($connId, $mediaDir . $image['name'], $this->getImportImagesFileDir() . $image['name'],
+                    $binary);
+
+                if ($this->getAfterImport() == 'archive') {
+                    ftp_rename($connId, $this->getImportImagesFileDir() . $image['name'],
+                        $this->getImportImagesFileDir() . 'archives/' . $image['name']);
+                }
+                if ($this->getAfterImport() == 'delete') {
+                    ftp_delete($connId, $this->getImportImagesFileDir() . $image['name']);
+                }
+            }
+
+            ftp_get($connId, $localFile, $fileName, $binary);
+
+            if ($this->getAfterImport() == 'archive') {
+                ftp_rename($connId, $fileName, $archiveDir . $this->getFileName());
+            }
+
+            if ($this->getAfterImport() == 'delete') {
+                ftp_delete($connId, $fileName);
+            }
+
+            ftp_close($connId);
         }
 
         return $localFile;

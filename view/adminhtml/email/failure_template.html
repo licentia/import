@@ -16,23 +16,21 @@
   ~
   -->
 
-<!--@subject {{trans 'Issues with your Schedule Import %name' formName="$name"}} @-->
+<!--@subject {{trans 'Issues with your Schedule Import %name' name="$name"}} @-->
 <!--@vars {
 "var name":"Name",
-"var description":"Description",
 "var message":"Error Message"
 } @-->
-
-{{template config_path="design/email/header_template"}}
 
 <table>
     <tr class="email-intro">
         <td>
             <p class="greeting"></p>
-            <p>{{trans 'There was a problem while processing your schedule import"}}.</p>
-            <p>{{{var message}}</p>
+            <p>{{trans 'He there,'}}.</p>
+            <p>{{trans 'There was a problem while processing your schedule import'}}.</p>
+            <p>{{trans 'Here is the message'}}.</p>
+            <p>{{var message}}</p>
         </td>
     </tr>
 </table>
 
-{{template config_path="design/email/footer_template"}}

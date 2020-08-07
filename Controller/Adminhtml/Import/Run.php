@@ -44,7 +44,7 @@ class Run extends \Licentia\Import\Controller\Adminhtml\Import
         if ($model->getId()) {
             try {
                 $model->run();
-                $this->messageManager->addSuccessMessage(__('You deleted the Scheduled Import'));
+                $this->messageManager->addSuccessMessage(__('Job Successfully Run'));
             } catch (\Magento\Framework\Exception\LocalizedException $e) {
                 $this->messageManager->addErrorMessage($e->getMessage());
             } catch (\RuntimeException $e) {

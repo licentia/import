@@ -115,11 +115,48 @@
                 <label translate="true">Active</label>
             </settings>
         </column>
+        <column name="last_execution_status">
+            <argument name="data" xsi:type="array">
+                <item name="options" xsi:type="array">
+                    <item name="success" xsi:type="array">
+                        <item name="value" xsi:type="string">success</item>
+                        <item name="label" xsi:type="string" translate="true">Success</item>
+                    </item>
+                    <item name="fail" xsi:type="array">
+                        <item name="value" xsi:type="string">fail</item>
+                        <item name="label" xsi:type="string" translate="true">Fail</item>
+                    </item>
+                    <item name="success_no_file" xsi:type="array">
+                        <item name="value" xsi:type="string">success_no_file</item>
+                        <item name="label" xsi:type="string" translate="true">Success (No File)</item>
+                    </item>
+                </item>
+                <item name="config" xsi:type="array">
+                    <item name="filter" xsi:type="string">select</item>
+                    <item name="component" xsi:type="string">Magento_Ui/js/grid/columns/select</item>
+                    <item name="label" xsi:type="string" translate="true">Last Outcome</item>
+                    <item name="dataType" xsi:type="string">select</item>
+                    <item name="fieldClass" xsi:type="string">column_120</item>
+                </item>
+            </argument>
+        </column>
         <column name="last_executed" class="Magento\Ui\Component\Listing\Columns\Date" component="Magento_Ui/js/grid/columns/date">
             <settings>
                 <filter>dateRange</filter>
                 <dataType>date</dataType>
                 <label translate="true">Last Executed</label>
+                <timezone>false</timezone>
+                <dateFormat>MMM d, y HH:mm</dateFormat>
+                <fieldClass>
+                    <class name="right">true</class>
+                </fieldClass>
+            </settings>
+        </column>
+        <column name="next_execution" class="Magento\Ui\Component\Listing\Columns\Date" component="Magento_Ui/js/grid/columns/date">
+            <settings>
+                <filter>dateRange</filter>
+                <dataType>date</dataType>
+                <label translate="true">Next Execution</label>
                 <timezone>false</timezone>
                 <dateFormat>MMM d, y HH:mm</dateFormat>
                 <fieldClass>

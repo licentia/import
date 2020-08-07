@@ -72,11 +72,6 @@ class Import extends \Magento\Framework\Model\AbstractModel
     protected $imagesDirProvider;
 
     /**
-     * @var \Magento\Cron\Model\Schedule
-     */
-    protected $schedule;
-
-    /**
      * @var \Magento\Framework\App\Config\ScopeConfigInterface
      */
     protected $scopeConfig;
@@ -99,10 +94,10 @@ class Import extends \Magento\Framework\Model\AbstractModel
     /**
      * Import constructor.
      *
+     * @param \Magento\Framework\Translate\Inline\StateInterface           $inlineTranslation
      * @param \Magento\Store\Model\StoreManagerInterface                   $storeManager
      * @param \Magento\Framework\Mail\Template\TransportBuilder            $transportBuilder
      * @param \Magento\Framework\App\Config\ScopeConfigInterface           $scopeConfig
-     * @param \Magento\Cron\Model\Schedule                                 $schedule
      * @param MagentoImport                                                $importModel
      * @param \Magento\Framework\Filesystem                                $filesystem
      * @param \Licentia\Panda\Helper\Data                                  $pandaHelper
@@ -110,15 +105,14 @@ class Import extends \Magento\Framework\Model\AbstractModel
      * @param \Magento\Framework\Registry                                  $registry
      * @param \Magento\Framework\Model\ResourceModel\AbstractResource|null $resource
      * @param \Magento\Framework\Data\Collection\AbstractDb|null           $resourceCollection
-     * @param MagentoImport\ImageDirectoryBaseProvider|null                $imageDirectoryBaseProvider
      * @param array                                                        $data
+     * @param MagentoImport\ImageDirectoryBaseProvider|null                $imageDirectoryBaseProvider
      */
     public function __construct(
         \Magento\Framework\Translate\Inline\StateInterface $inlineTranslation,
         \Magento\Store\Model\StoreManagerInterface $storeManager,
         \Magento\Framework\Mail\Template\TransportBuilder $transportBuilder,
         \Magento\Framework\App\Config\ScopeConfigInterface $scopeConfig,
-        \Magento\Cron\Model\Schedule $schedule,
         MagentoImport $importModel,
         \Magento\Framework\Filesystem $filesystem,
         \Licentia\Panda\Helper\Data $pandaHelper,
@@ -135,7 +129,6 @@ class Import extends \Magento\Framework\Model\AbstractModel
         $this->storeManager = $storeManager;
         $this->transportBuilder = $transportBuilder;
         $this->scopeConfig = $scopeConfig;
-        $this->schedule = $schedule;
         $this->importModel = $importModel;
         $this->filesystem = $filesystem;
         $this->pandaHelper = $pandaHelper;
@@ -162,13 +155,11 @@ class Import extends \Magento\Framework\Model\AbstractModel
     protected function _afterLoad()
     {
 
-        parent::_afterLoad();
-
         if ($this->getFtpPassword()) {
             $this->setFtpPassword($this->pandaHelper->getEncryptor()->decrypt($this->getFtpPassword()));
         }
 
-        return $this;
+        return parent::_afterLoad();
     }
 
     /**
@@ -177,11 +168,20 @@ class Import extends \Magento\Framework\Model\AbstractModel
     public function beforeSave()
     {
 
-        parent::beforeSave();
-
         if ($this->getFtpPassword()) {
             $this->setFtpPassword($this->pandaHelper->getEncryptor()->encrypt($this->getFtpPassword()));
         }
+
+        if ($this->getCron() !== 'other') {
+            $this->setCronExpression($this->getCron());
+        }
+
+        $cron = \Cron\CronExpression::factory($this->getCronExpression());
+        $currentTime = $this->pandaHelper->gmtDateTime();
+        $nextExecutionAfter = $cron->getNextRunDate($currentTime)->format('Y-m-d H:i:s');
+        $this->setNextExecution($nextExecutionAfter);
+
+        return parent::beforeSave();
     }
 
     /**
@@ -190,11 +190,35 @@ class Import extends \Magento\Framework\Model\AbstractModel
     public function validateBeforeSave()
     {
 
-        $this->schedule->setCronExpr($this->getCron());
-        $this->schedule->setScheduledAt(date('Y-m-d H:i:s'));
-        $this->schedule->trySchedule();
+        $expr = $this->getCron();
+
+        if ($this->getCron() == 'other') {
+            $expr = $this->getCronExpression();
+        }
+
+        if (!\Cron\CronExpression::isValidExpression($expr)) {
+            throw new \Magento\Framework\Exception\LocalizedException(__('Invalid Cron expression'));
+        }
 
         return parent::validateBeforeSave();
+    }
+
+    public function executeCron()
+    {
+
+        $collection = $this->getCollection()
+                           ->addFieldToFilter('is_active', 1);
+
+        /** @var Import $job */
+        foreach ($collection as $job) {
+            $cron = \Cron\CronExpression::factory($job->getCronExpression());
+            $currentTime = $this->pandaHelper->gmtDateTime();
+            $nextRun = $cron->getNextRunDate($job->getLastExecuted())->format('Y-m-d H:i:s');
+            $nextExecutionAfter = $cron->getNextRunDate()->format('Y-m-d H:i:s');
+            if ($currentTime >= $nextRun) {
+                $job->load($job->getId())->setNextExecution($nextExecutionAfter)->run();
+            }
+        }
     }
 
     /**
@@ -210,8 +234,10 @@ class Import extends \Magento\Framework\Model\AbstractModel
                     unset($emails[$key]);
                 }
             }
-            $emails = array_unique($emails);
-            $emails = array_values($emails);
+            if ($emails) {
+                $emails = array_unique($emails);
+                $emails = array_values($emails);
+            }
 
             $recipients = $emails;
             if ($this->getFailedEmailCopyMethod() == 'bcc') {
@@ -219,24 +245,17 @@ class Import extends \Magento\Framework\Model\AbstractModel
                 unset($emails[0]);
             }
 
-            $this->inlineTranslation->suspend();
-
             foreach ($recipients as $email) {
                 $transport = $this->transportBuilder
-                    ->setTemplateIdentifier(
-                        $this->scopeConfig->getValue(
-                            self::XML_PATH_PANDA_IMPORT_TEMPLATE,
-                        )
-                    )->setTemplateOptions(
+                    ->setTemplateIdentifier('panda_import_failure_template',)->setTemplateOptions(
                         [
                             'area'  => \Magento\Backend\App\Area\FrontNameResolver::AREA_CODE,
                             'store' => \Magento\Store\Model\Store::DEFAULT_STORE_ID,
                         ]
                     )
                     ->setTemplateVars([
-                        'message'     => $message,
-                        'name'        => $this->getName(),
-                        'description' => $this->getDescription(),
+                        'message' => $message,
+                        'name'    => $this->getName(),
                     ])
                     ->setFromByScope($this->getFailedEmailSender())
                     ->addTo($email)
@@ -251,16 +270,13 @@ class Import extends \Magento\Framework\Model\AbstractModel
                 $transport->sendMessage();
             }
 
-            $this->inlineTranslation->resume();
-
         } catch (\Exception $e) {
             $this->pandaHelper->logException($e);
         }
     }
 
     /**
-     * @return string|null
-     * @throws \Magento\Framework\Exception\LocalizedException
+     * @return false|string|null
      */
     public function getFullFilePathName()
     {
@@ -273,6 +289,10 @@ class Import extends \Magento\Framework\Model\AbstractModel
 
             $exists = $this->filesystem->getDirectoryRead(DirectoryList::ROOT)
                                        ->isFile($fileName);
+
+            if (!$exists) {
+                return false;
+            }
 
             $localFile = $this->filesystem->getDirectoryRead(DirectoryList::ROOT)
                                           ->getAbsolutePath($fileName);
@@ -292,11 +312,29 @@ class Import extends \Magento\Framework\Model\AbstractModel
             $binary = $this->getFtpFileMode() == 'binary' ? FTP_BINARY : FTP_ASCII;
             $connId = ftp_connect($this->getFtpHost(), $this->getFtpPort() ?? 21);
             if (!@ftp_login($connId, $this->getFtpUsername(), $this->getFtpPassword())) {
-                throw new \Magento\Framework\Exception\LocalizedException(__("Can't connect to FTP"));
+                $this->importModel->getErrorAggregator()->addError(
+                    \Magento\ImportExport\Model\Import\Entity\AbstractEntity::ERROR_CODE_SYSTEM_EXCEPTION,
+                    \Magento\ImportExport\Model\Import\ErrorProcessing\ProcessingError::ERROR_LEVEL_CRITICAL,
+                    null,
+                    null,
+                    null,
+                    "Can't connect to FTP Server: " . $this->getFtpHost()
+                );
             }
 
             if ($this->getFtpPassiveMode()) {
                 ftp_pasv($connId, true);
+            }
+
+            $file = null;
+            try {
+                $file = ftp_get($connId, $localFile, $fileName, $binary);
+            } catch (\Exception $e) {
+                return false;
+            }
+
+            if (!$file) {
+                return false;
             }
 
             if ($this->getAfterImport() == 'archive') {
@@ -330,17 +368,15 @@ class Import extends \Magento\Framework\Model\AbstractModel
 
                 if ($this->getAfterImport() == 'archive') {
                     ftp_rename($connId, $this->getImportImagesFileDir() . $image['name'],
-                        $this->getImportImagesFileDir() . 'archives/' . $image['name']);
+                        $this->getImportImagesFileDir() . 'archives/' . date('Y-m-d_H-i') . '_' . $image['name']);
                 }
                 if ($this->getAfterImport() == 'delete') {
                     ftp_delete($connId, $this->getImportImagesFileDir() . $image['name']);
                 }
             }
 
-            ftp_get($connId, $localFile, $fileName, $binary);
-
             if ($this->getAfterImport() == 'archive') {
-                ftp_rename($connId, $fileName, $archiveDir . $this->getFileName());
+                ftp_rename($connId, $fileName, $archiveDir . date('Y-m-d_H-i') . '_' . $this->getFileName());
             }
 
             if ($this->getAfterImport() == 'delete') {
@@ -362,7 +398,18 @@ class Import extends \Magento\Framework\Model\AbstractModel
 
             $sftp = new SFTP($this->getFtpHost(), $this->getFtpPort() ?? 22);
             if (!$sftp->login($this->getFtpUsername(), $this->getFtpPassword())) {
-                throw  new \Magento\Framework\Exception\LocalizedException(__("Can't connect to SERVER"));
+                $this->importModel->getErrorAggregator()->addError(
+                    \Magento\ImportExport\Model\Import\Entity\AbstractEntity::ERROR_CODE_SYSTEM_EXCEPTION,
+                    \Magento\ImportExport\Model\Import\ErrorProcessing\ProcessingError::ERROR_LEVEL_CRITICAL,
+                    null,
+                    null,
+                    null,
+                    "Can't connect to SERVER: " . $this->getFtpHost()
+                );
+            }
+
+            if (!$sftp->get($fileName, $localFile)) {
+                return false;
             }
 
             if ($this->getAfterImport() == 'archive') {
@@ -394,17 +441,15 @@ class Import extends \Magento\Framework\Model\AbstractModel
 
                 if ($this->getAfterImport() == 'archive') {
                     $sftp->rename($this->getImportImagesFileDir() . $image['filename'],
-                        $this->getImportImagesFileDir() . 'archives/' . $image['filename']);
+                        $this->getImportImagesFileDir() . 'archives/' . date('Y-m-d_H-i') . '_' . $image['filename']);
                 }
                 if ($this->getAfterImport() == 'delete') {
                     $sftp->delete($this->getImportImagesFileDir() . $image['filename'], false);
                 }
             }
 
-            $sftp->get($fileName, $localFile);
-
             if ($this->getAfterImport() == 'archive') {
-                $sftp->rename($fileName, $archiveDir . $this->getFileName());
+                $sftp->rename($fileName, $archiveDir . date('Y-m-d_H-i') . '_' . $this->getFileName());
             }
 
             if ($this->getAfterImport() == 'delete') {
@@ -421,39 +466,126 @@ class Import extends \Magento\Framework\Model\AbstractModel
     public function run()
     {
 
-        $fullFileNamePath = $this->getFullFilePathName();
-
-        $data = $this->getData();
-        $data['behavior'] = $this->getImportBehavior();
-        $data['entity'] = $this->getEntityType();
-        $data['validation_strategy'] = $this->getOnError();
-        $data['_import_field_separator'] = $this->getImportFieldSeparator();
-        $data['_import_multiple_value_separator'] = $this->getImportMultipleValueSeparator();
-        $data['_import_empty_attribute_value_constant'] = $this->getImportEmptyAttributeValueConstant();
-        $data['import_images_file_dir'] = $this->getImportImagesFileDir();
-        $data['import_file'] = $fullFileNamePath;
-
-        $this->importModel->setData($data);
-        $this->importModel->setData('images_base_directory', $this->imagesDirProvider->getDirectory());
-        $errorAggregator = $this->importModel->getErrorAggregator();
-        $errorAggregator->initValidationStrategy(
-            $this->importModel->getData(MagentoImport::FIELD_NAME_VALIDATION_STRATEGY),
-            $this->importModel->getData(MagentoImport::FIELD_NAME_ALLOWED_ERROR_COUNT)
-        );
-
+        $result = 'success';
+        $fullFileNamePath = null;
         try {
-            $this->importModel->importSource();
+
+            $fullFileNamePath = $this->getFullFilePathName();
+
+            if ($fullFileNamePath) {
+                $data = $this->getData();
+                $data['behavior'] = $this->getImportBehavior();
+                $data['entity'] = $this->getEntityType();
+                $data['validation_strategy'] = $this->getOnError();
+                $data['_import_field_separator'] = $this->getImportFieldSeparator();
+                $data['_import_multiple_value_separator'] = $this->getImportMultipleValueSeparator();
+                $data['_import_empty_attribute_value_constant'] = $this->getImportEmptyAttributeValueConstant();
+                $data['import_images_file_dir'] = $this->getImportImagesFileDir();
+                $data['import_file'] = $fullFileNamePath;
+
+                $this->importModel->setData($data);
+                $this->importModel->setData('images_base_directory', $this->imagesDirProvider->getDirectory());
+                $errorAggregator = $this->importModel->getErrorAggregator();
+                $errorAggregator->initValidationStrategy(
+                    $this->importModel->getData(MagentoImport::FIELD_NAME_VALIDATION_STRATEGY),
+                    $this->importModel->getData(MagentoImport::FIELD_NAME_ALLOWED_ERROR_COUNT)
+                );
+
+                $this->importModel->importSource();
+            } else {
+                $result = 'success_no_file';
+            }
+
         } catch (\Exception $e) {
-            $this->sendErrorEmail($e->getMessage());
+
+            $message = implode("<br><br>", $this->importModel->getErrorAggregator()->getAllErrors());
+
+            if (!$message) {
+                $message = $e->getMessage();
+            }
+            $result = 'fail';
+            $this->sendErrorEmail($message);
         }
 
-        if (!$this->importModel->getErrorAggregator()->hasToBeTerminated()) {
-            $this->importModel->invalidateIndex();
+        if ($fullFileNamePath) {
+            if (!$this->importModel->getErrorAggregator()->hasToBeTerminated()) {
+                $this->importModel->invalidateIndex();
+            }
         }
 
         $this->setLastExecuted($this->pandaHelper->gmtDateTime());
-
+        $this->setLastExecutionStatus($result);
         $this->save();
+
+        if ($result == 'success') {
+
+            if ($this->getServerType() == 'local') {
+                $fileDir = $this->getFileDirectory();
+                $mediaDir = $this->imagesDirProvider->getDirectory()
+                                                    ->getAbsolutePath($this->getImportImagesFileDir());
+            } else {
+                $fileDir = $localFile = $this->filesystem->getDirectoryWrite(DirectoryList::VAR_DIR)
+                                                         ->getAbsolutePath('importexport/');
+                $mediaDir = $this->imagesDirProvider->getDirectory()
+                                                    ->getAbsolutePath();
+            }
+
+            $fileName = $fileDir . $this->getFileName();
+
+            $archivesDirExists = $this->filesystem->getDirectoryRead(DirectoryList::ROOT)
+                                                  ->isDirectory($mediaDir . 'archives');
+            if (!$archivesDirExists) {
+                $this->filesystem->getDirectoryWrite(DirectoryList::ROOT)
+                                 ->create($mediaDir . 'archives');
+            }
+            $archiveMediaDir = $mediaDir . 'archives/';
+
+            foreach (new \DirectoryIterator($mediaDir) as $file) {
+                if ($file->isFile()) {
+                    if (!in_array(strtolower($file->getExtension()), ['png', 'jpg', 'jpeg'])) {
+                        continue;
+                    }
+                    if ($this->getAfterImport() == 'archive') {
+
+                        $this->filesystem->getDirectoryWrite(DirectoryList::ROOT)
+                                         ->renameFile($file->getRealPath(),
+                                             $archiveMediaDir . date('Y-m-d_H-i') . '_' . $file->getFileName());
+                    }
+                    if ($this->getAfterImport() == 'delete') {
+                        $this->filesystem->getDirectoryWrite(DirectoryList::ROOT)
+                                         ->delete($file->getRealPath());
+                    }
+                }
+            }
+
+            if ($this->getServerType() == 'local') {
+                $localFile = $this->filesystem->getDirectoryRead(DirectoryList::ROOT)
+                                              ->getAbsolutePath($fileName);
+            } else {
+                $localFile = $this->filesystem->getDirectoryWrite(DirectoryList::VAR_DIR)
+                                              ->getAbsolutePath('importexport/' . $this->getEntityType() . '.csv');
+            }
+
+            if ($this->getAfterImport() == 'archive') {
+
+                $archivesDirExists = $this->filesystem->getDirectoryRead(DirectoryList::ROOT)
+                                                      ->isDirectory($fileDir . 'archives');
+                if (!$archivesDirExists) {
+                    $this->filesystem->getDirectoryWrite(DirectoryList::ROOT)
+                                     ->create($fileDir . 'archives');
+                }
+                $archiveDir = $fileDir . 'archives/';
+
+                $this->filesystem->getDirectoryWrite(DirectoryList::ROOT)
+                                 ->renameFile($localFile, $archiveDir . date('Y-m-d_H-i') . '_' . $this->getFileName());
+            }
+
+            if ($this->getAfterImport() == 'delete') {
+                $this->filesystem->getDirectoryWrite(DirectoryList::ROOT)
+                                 ->delete($localFile);
+            }
+
+        }
 
     }
 
@@ -1075,4 +1207,65 @@ class Import extends \Magento\Framework\Model\AbstractModel
 
         return $this->getData('ftp_port');
     }
+
+    /**
+     * @param $cronExpression
+     *
+     * @return $this
+     */
+    public function setCronExpression($cronExpression)
+    {
+
+        return $this->setData('cron_expression', $cronExpression);
+    }
+
+    /**
+     * @return mixed
+     */
+    public function getCronExpression()
+    {
+
+        return $this->getData('cron_expression');
+    }
+
+    /**
+     * @param $lastExecutionStatus
+     *
+     * @return $this
+     */
+    public function setLastExecutionStatus($lastExecutionStatus)
+    {
+
+        return $this->setData('last_execution_status', $lastExecutionStatus);
+    }
+
+    /**
+     * @return mixed
+     */
+    public function getLastExecutionStatus()
+    {
+
+        return $this->getData('last_execution_status');
+    }
+
+    /**
+     * @param $nextExecution
+     *
+     * @return $this
+     */
+    public function setNextExecution($nextExecution)
+    {
+
+        return $this->setData('next_execution', $nextExecution);
+    }
+
+    /**
+     * @return mixed
+     */
+    public function getNextExecution()
+    {
+
+        return $this->getData('next_execution');
+    }
+
 }

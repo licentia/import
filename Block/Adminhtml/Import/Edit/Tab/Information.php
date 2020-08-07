@@ -211,18 +211,62 @@ class Information extends \Magento\Backend\Block\Widget\Form\Generic
                 "name"    => 'on_error',
             ]
         );
+        $html = '
+                <script type="text/javascript">
+
+                require(["jquery"],function ($){
+                toggleControlsValidateCron = {
+                    run: function() {
+                        if($("#cron").val() == "other"){
+                            $("div.admin__field.field.field-cron_expression").show();
+                        }else{ 
+                            $("div.admin__field.field.field-cron_expression").hide();
+                        }
+                    }
+                }
+                window.toggleControlsValidateCron = toggleControlsValidateCron;
+                $(function() {
+                    toggleControlsValidateCron.run();
+                });
+
+                });
+                </script>
+                ';
 
         $fieldset->addField(
             'cron',
-            'text',
+            'select',
             [
                 'name'     => 'cron',
                 'label'    => __('Cron Expression'),
                 'title'    => __('Cron Expression'),
-                'required' => true,
-                'value'    => ',',
+                "onchange" => 'toggleControlsValidateCron.run();',
+                'options'  => [
+                    '*/5 * * * *'  => __('Once Per Five Minutes (*/5 * * * *)'),
+                    '0,30 * * * *' => __('Twice Per Hour (0,30 * * * *)'),
+                    '0 * * * *'    => __('Once Per Hour (0 * * * *)'),
+                    '0 0,12 * * *' => __('Twice Per Day (0 0,12 * * *)'),
+                    '0 0 * * *'    => __('Once Per Day( 0 0 * * *)'),
+                    '0 0 * * 0'    => __('Once Per Week (0 0 * * 0)'),
+                    '0 0 1,15 * *' => __('On the 1st and 15th of the Month (0 0 1,15 * *)'),
+                    '0 0 1 * *'    => __('Once Per Month (0 0 1 * *)'),
+                    'other'        => __('Custom Expression'),
+                ],
+            ]
+        )
+                 ->setAfterElementHtml($html);
+
+        $fieldset->addField(
+            'cron_expression',
+            'text',
+            [
+                'name'  => 'cron_expression',
+                'label' => __('CRON Expression'),
+                'title' => __('CRON Expression'),
+                'class' => 'small_input',
             ]
         );
+
         $fieldset->addField(
             'after_import',
             'select',
@@ -232,9 +276,8 @@ class Information extends \Magento\Backend\Block\Widget\Form\Generic
                 'label'    => __('After Import Action'),
                 'required' => true,
                 "options"  => [
-                    'nothing' => __('Do Nothing'),
-                    'archive' => __('Archive Remote Files'),
-                    'delete'  => __('Delete Remote Files'),
+                    'archive' => __('Archive Files'),
+                    'delete'  => __('Delete Files'),
                 ],
             ]
         );
@@ -247,6 +290,7 @@ class Information extends \Magento\Backend\Block\Widget\Form\Generic
                 'title'    => __('Field separator'),
                 'required' => true,
                 'value'    => ',',
+                'class'    => 'small_input',
             ]
         );
 
@@ -259,6 +303,7 @@ class Information extends \Magento\Backend\Block\Widget\Form\Generic
                 'title'    => __('Multiple value separator'),
                 'required' => true,
                 'value'    => Import::DEFAULT_GLOBAL_MULTI_VALUE_SEPARATOR,
+                'class'    => 'small_input',
             ]
         );
 
@@ -271,6 +316,7 @@ class Information extends \Magento\Backend\Block\Widget\Form\Generic
                 'title'    => __('Empty attribute value constant'),
                 'required' => true,
                 'value'    => Import::DEFAULT_EMPTY_ATTRIBUTE_VALUE_CONSTANT,
+                'class'    => 'small_input',
             ]
         );
 
@@ -293,21 +339,23 @@ class Information extends \Magento\Backend\Block\Widget\Form\Generic
                 toggleControlsValidateProtect = {
                     run: function() {
                         if($("#server_type").val() == "ftp"){
-                            $("div.admin__field.field.field-ftp_host").addClass("required-entry").show();
-                            $("div.admin__field.field.field-ftp_username").addClass("required-entry").show();
-                            $("div.admin__field.field.field-ftp_password").addClass("required-entry").show();
-                            $("div.admin__field.field.field-ftp_file_mode").addClass("required-entry").show();
-                            $("div.admin__field.field.field-ftp_passive_mode").addClass("required-entry").show();
+                            $("div.admin__field.field.field-ftp_host").show();
+                            $("div.admin__field.field.field-ftp_port").show();
+                            $("div.admin__field.field.field-ftp_username").show();
+                            $("div.admin__field.field.field-ftp_password").show();
+                            $("div.admin__field.field.field-ftp_file_mode").show();
+                            $("div.admin__field.field.field-ftp_passive_mode").show();
                             
                             $("#ftp_host").addClass("required-entry");
                             $("#ftp_username").addClass("required-entry");
                             $("#ftp_password").addClass("required-entry");
                         }else if($("#server_type").val() == "ssh"){
-                            $("div.admin__field.field.field-ftp_host").addClass("required-entry").show();
-                            $("div.admin__field.field.field-ftp_username").addClass("required-entry").show();
-                            $("div.admin__field.field.field-ftp_password").addClass("required-entry").show();
-                            $("div.admin__field.field.field-ftp_file_mode").addClass("required-entry").hide();
-                            $("div.admin__field.field.field-ftp_passive_mode").addClass("required-entry").hide();
+                            $("div.admin__field.field.field-ftp_host").show();
+                            $("div.admin__field.field.field-ftp_port").show();
+                            $("div.admin__field.field.field-ftp_username").show();
+                            $("div.admin__field.field.field-ftp_password").show();
+                            $("div.admin__field.field.field-ftp_file_mode").hide();
+                            $("div.admin__field.field.field-ftp_passive_mode").hide();
                             
                             $("#ftp_host").addClass("required-entry");
                             $("#ftp_username").addClass("required-entry");
@@ -317,11 +365,12 @@ class Information extends \Magento\Backend\Block\Widget\Form\Generic
                             $("#ftp_username").removeClass("required-entry");
                             $("#ftp_password").removeClass("required-entry");
                           
-                            $("div.admin__field.field.field-ftp_host").removeClass("required-entry").hide();
-                            $("div.admin__field.field.field-ftp_username").removeClass("required-entry").hide();
-                            $("div.admin__field.field.field-ftp_password").removeClass("required-entry").hide();
-                            $("div.admin__field.field.field-ftp_file_mode").removeClass("required-entry").hide();
-                            $("div.admin__field.field.field-ftp_passive_mode").removeClass("required-entry").hide();
+                            $("div.admin__field.field.field-ftp_host").hide();
+                            $("div.admin__field.field.field-ftp_port").hide();
+                            $("div.admin__field.field.field-ftp_username").hide();
+                            $("div.admin__field.field.field-ftp_password").hide();
+                            $("div.admin__field.field.field-ftp_file_mode").hide();
+                            $("div.admin__field.field.field-ftp_passive_mode").hide();
                         }
                     }
                 }
@@ -496,15 +545,6 @@ class Information extends \Magento\Backend\Block\Widget\Form\Generic
                 "options" => ['copy' => __('Copy'), 'bcc' => __('BCC')],
                 "name"    => 'failed_email_copy_method',
                 'note'    => __('If multiple Recipients defined'),
-            ]
-        );
-        $fieldset3->addField(
-            'failed_email_template',
-            "select",
-            [
-                "label"  => __('Failed Email Template'),
-                "values" => $this->emailTemplate->setData('path', 'panda_import_failure_template')->toOptionArray(),
-                "name"   => 'failed_email_template',
             ]
         );
 

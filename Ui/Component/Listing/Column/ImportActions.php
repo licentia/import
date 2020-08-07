@@ -37,10 +37,6 @@ class ImportActions extends Column
      */
     const URL_PATH_EDIT = 'pandai/import/edit';
 
-    const URL_PATH_DELETE = 'pandai/import/delete';
-
-    const URL_PATH_RECORDS = 'pandai/import/entries';
-
     /**
      * @var UrlInterface
      */
@@ -86,7 +82,7 @@ class ImportActions extends Column
             foreach ($dataSource['data']['items'] as & $item) {
                 if (isset($item['record_id'])) {
                     $item[$this->getData('name')] = [
-                        'edit'     => [
+                        'edit' => [
                             'href'  => $this->urlBuilder->getUrl(
                                 static::URL_PATH_EDIT,
                                 [
@@ -94,40 +90,6 @@ class ImportActions extends Column
                                 ]
                             ),
                             'label' => __('Edit'),
-                        ],
-                        'elements' => [
-                            'href'  => $this->urlBuilder->getUrl(
-                                static::URL_PATH_EDIT,
-                                [
-                                    'id'     => $item['record_id'],
-                                    'tab_id' => 'element_section',
-                                ]
-                            ),
-                            'label' => __('View Elements'),
-                        ],
-                        'records'  => [
-                            'href'  => $this->urlBuilder->getUrl(
-                                static::URL_PATH_RECORDS,
-                                [
-                                    'id' => $item['record_id'],
-                                ]
-                            ),
-                            'label' => __('View Entries'),
-                        ],
-                        'delete'   => [
-                            'href'    => $this->urlBuilder->getUrl(
-                                static::URL_PATH_DELETE,
-                                [
-                                    'id' => $item['record_id'],
-                                ]
-                            ),
-                            'label'   => __('Delete'),
-                            'confirm' => [
-                                'title'   => __('Delete "${ $.$data.name }"'),
-                                'message' => __(
-                                    'Are you sure you wan\'t to delete the "${ $.$data.name }" Import?'
-                                ),
-                            ],
                         ],
                     ];
                 }

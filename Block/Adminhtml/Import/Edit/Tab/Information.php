@@ -48,13 +48,6 @@ class Information extends \Magento\Backend\Block\Widget\Form\Generic
     protected $importFactory;
 
     /**
-     * Basic import model
-     *
-     * @var Import
-     */
-    protected $_importModel;
-
-    /**
      * @var \Magento\ImportExport\Model\Source\Import\EntityFactory
      */
     protected $_entityFactory;
@@ -91,7 +84,6 @@ class Information extends \Magento\Backend\Block\Widget\Form\Generic
      * @param \Licentia\Panda\Helper\Data                                $pandaHelper
      * @param \Magento\Store\Model\System\Store                          $systemStore
      * @param \Licentia\Import\Model\ImportFactory                       $importFactory
-     * @param Import                                                     $importModel
      * @param \Magento\ImportExport\Model\Source\Import\Behavior\Factory $behaviorFactory
      * @param array                                                      $data
      */
@@ -105,7 +97,6 @@ class Information extends \Magento\Backend\Block\Widget\Form\Generic
         \Licentia\Panda\Helper\Data $pandaHelper,
         \Magento\Store\Model\System\Store $systemStore,
         \Licentia\Import\Model\ImportFactory $importFactory,
-        \Magento\ImportExport\Model\Import $importModel,
         \Magento\ImportExport\Model\Source\Import\Behavior\Factory $behaviorFactory,
         array $data = []
     ) {
@@ -121,7 +112,6 @@ class Information extends \Magento\Backend\Block\Widget\Form\Generic
         $this->_entityFactory = $entityFactory;
         $this->_behaviorFactory = $behaviorFactory;
         parent::__construct($context, $registry, $formFactory, $data);
-        $this->_importModel = $importModel;
         $this->imagesDirectoryProvider = $imageDirProvider
                                          ?? ObjectManager::getInstance()->get(Import\ImageDirectoryBaseProvider::class);
     }
@@ -164,7 +154,7 @@ class Information extends \Magento\Backend\Block\Widget\Form\Generic
             'description',
             'textarea',
             [
-                'name'     => 'name',
+                'name'     => 'description',
                 'label'    => __('Description'),
                 'title'    => __('Description'),
                 "required" => true,
@@ -175,17 +165,17 @@ class Information extends \Magento\Backend\Block\Widget\Form\Generic
             'is_active',
             "select",
             [
-                "label"   => __('Status'),
-                "options" => ['1' => __('Active'), '0' => __('Inactive')],
+                "label"   => __('Is Active'),
+                "options" => ['1' => __('Yes'), '0' => __('No')],
                 "name"    => 'is_active',
             ]
         );
 
         $fieldset->addField(
-            'entity',
+            'entity_type',
             'select',
             [
-                'name'     => 'entity',
+                'name'     => 'entity_type',
                 'title'    => __('Entity Type'),
                 'label'    => __('Entity Type'),
                 'required' => true,
@@ -194,21 +184,60 @@ class Information extends \Magento\Backend\Block\Widget\Form\Generic
         );
 
         $fieldset->addField(
-            Import::FIELD_NAME_ALLOWED_ERROR_COUNT,
-            'text',
+            'import_behavior',
+            'select',
             [
-                'name'     => Import::FIELD_NAME_ALLOWED_ERROR_COUNT,
-                'label'    => __('Allowed Errors Count'),
-                'title'    => __('Allowed Errors Count'),
+                'name'     => 'import_behavior',
+                'title'    => __('Import Behavior'),
+                'label'    => __('Import Behavior'),
                 'required' => true,
-                'value'    => 10,
-                'class'    => ' validate-number validate-greater-than-zero input-text',
-                'note'     => __(
-                    'Please specify number of errors to halt import process'
-                ),
+                "options"  => [
+                    'append'  => __('Add/Update'),
+                    'replace' => __('Replace'),
+                    'delete'  => __('Delete'),
+                ],
             ]
         );
 
+        $fieldset->addField(
+            'on_error',
+            "select",
+            [
+                "label"   => __('On Errors'),
+                "options" => [
+                    'validation-stop-on-errors' => __('Stop Processing'),
+                    'validation-skip-errors'    => __('Continue Processing'),
+                ],
+                "name"    => 'on_error',
+            ]
+        );
+
+        $fieldset->addField(
+            'cron',
+            'text',
+            [
+                'name'     => 'cron',
+                'label'    => __('Cron Expression'),
+                'title'    => __('Cron Expression'),
+                'required' => true,
+                'value'    => ',',
+            ]
+        );
+        $fieldset->addField(
+            'after_import',
+            'select',
+            [
+                'name'     => 'after_import',
+                'title'    => __('After Import Action'),
+                'label'    => __('After Import Action'),
+                'required' => true,
+                "options"  => [
+                    'nothing' => __('Do Nothing'),
+                    'archive' => __('Archive Remote Files'),
+                    'delete'  => __('Delete Remote Files'),
+                ],
+            ]
+        );
         $fieldset->addField(
             Import::FIELD_FIELD_SEPARATOR,
             'text',
@@ -247,26 +276,79 @@ class Information extends \Magento\Backend\Block\Widget\Form\Generic
 
         $fieldset->addField(
             Import::FIELDS_ENCLOSURE,
-            'checkbox',
+            "select",
             [
-                'name'  => Import::FIELDS_ENCLOSURE,
-                'label' => __('Fields enclosure'),
-                'title' => __('Fields enclosure'),
-                'value' => 1,
+                'label'   => __('Fields enclosure'),
+                'title'   => __('Fields enclosure'),
+                "options" => ['1' => __('Yes'), '0' => __('No')],
+                "name"    => Import::FIELDS_ENCLOSURE,
             ]
         );
 
         $fieldset2 = $form->addFieldset('file_fieldset', ['legend' => __('Files')]);
+        $html = '
+                <script type="text/javascript">
+
+                require(["jquery"],function ($){
+                toggleControlsValidateProtect = {
+                    run: function() {
+                        if($("#server_type").val() == "ftp"){
+                            $("div.admin__field.field.field-ftp_host").addClass("required-entry").show();
+                            $("div.admin__field.field.field-ftp_username").addClass("required-entry").show();
+                            $("div.admin__field.field.field-ftp_password").addClass("required-entry").show();
+                            $("div.admin__field.field.field-ftp_file_mode").addClass("required-entry").show();
+                            $("div.admin__field.field.field-ftp_passive_mode").addClass("required-entry").show();
+                            
+                            $("#ftp_host").addClass("required-entry");
+                            $("#ftp_username").addClass("required-entry");
+                            $("#ftp_password").addClass("required-entry");
+                        }else if($("#server_type").val() == "ssh"){
+                            $("div.admin__field.field.field-ftp_host").addClass("required-entry").show();
+                            $("div.admin__field.field.field-ftp_username").addClass("required-entry").show();
+                            $("div.admin__field.field.field-ftp_password").addClass("required-entry").show();
+                            $("div.admin__field.field.field-ftp_file_mode").addClass("required-entry").hide();
+                            $("div.admin__field.field.field-ftp_passive_mode").addClass("required-entry").hide();
+                            
+                            $("#ftp_host").addClass("required-entry");
+                            $("#ftp_username").addClass("required-entry");
+                            $("#ftp_password").addClass("required-entry");
+                        }else{ 
+                            $("#ftp_host").removeClass("required-entry");
+                            $("#ftp_username").removeClass("required-entry");
+                            $("#ftp_password").removeClass("required-entry");
+                          
+                            $("div.admin__field.field.field-ftp_host").removeClass("required-entry").hide();
+                            $("div.admin__field.field.field-ftp_username").removeClass("required-entry").hide();
+                            $("div.admin__field.field.field-ftp_password").removeClass("required-entry").hide();
+                            $("div.admin__field.field.field-ftp_file_mode").removeClass("required-entry").hide();
+                            $("div.admin__field.field.field-ftp_passive_mode").removeClass("required-entry").hide();
+                        }
+                    }
+                }
+                window.toggleControlsValidateProtect = toggleControlsValidateProtect;
+                $(function() {
+                    toggleControlsValidateProtect.run();
+                });
+
+                });
+                </script>
+                ';
 
         $fieldset2->addField(
             'server_type',
             "select",
             [
-                "label"   => __('Server Type'),
-                "options" => ['local' => __('Local'), 'remote' => __('Remote (SSH)')],
-                "name"    => 'server_type',
+                "label"    => __('Server Type'),
+                "options"  => [
+                    'local' => __('Local'),
+                    'ftp'   => __('Remote (FTP)'),
+                    'ssh'   => __('Remote (SSH)'),
+                ],
+                "name"     => 'server_type',
+                "onchange" => 'toggleControlsValidateProtect.run();',
             ]
-        );
+        )
+                  ->setAfterElementHtml($html);
 
         $fieldset2->addField(
             'file_directory',
@@ -277,6 +359,8 @@ class Information extends \Magento\Backend\Block\Widget\Form\Generic
                 'title'    => __('File Directory'),
                 'required' => true,
                 'class'    => 'input-text',
+                'note'     => __('For Type "Local" use relative path to Magento installation, ' .
+                                 'e.g. var/export, var/import, var/export/some/dir<br><br>For "Remote" use the full path, e.g. /home/user/uploads/'),
             ]
         );
 
@@ -320,8 +404,8 @@ class Information extends \Magento\Backend\Block\Widget\Form\Generic
             'text',
             [
                 'name'     => 'ftp_host',
-                'label'    => __('FTP Host'),
-                'title'    => __('FTP Host'),
+                'label'    => __('Host'),
+                'title'    => __('Host'),
                 'required' => true,
                 'class'    => 'input-text',
             ]
@@ -398,7 +482,7 @@ class Information extends \Magento\Backend\Block\Widget\Form\Generic
             "select",
             [
                 "label"  => __('Failed Email Template'),
-                "values" => $this->emailTemplate->setData('path','panda_import_failure_template')->toOptionArray(),
+                "values" => $this->emailTemplate->setData('path', 'panda_import_failure_template')->toOptionArray(),
                 "name"   => 'failed_email_template',
             ]
         );

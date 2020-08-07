@@ -44,7 +44,7 @@ class Delete extends \Licentia\Import\Controller\Adminhtml\Import
         if ($model->getId()) {
             try {
                 $model->delete();
-                $this->messageManager->addSuccessMessage(__('You deleted the Import'));
+                $this->messageManager->addSuccessMessage(__('You deleted the Scheduled Import'));
             } catch (\Magento\Framework\Exception\LocalizedException $e) {
                 $this->messageManager->addErrorMessage($e->getMessage());
             } catch (\RuntimeException $e) {
@@ -52,13 +52,13 @@ class Delete extends \Licentia\Import\Controller\Adminhtml\Import
             } catch (\Exception $e) {
                 $this->messageManager->addExceptionMessage(
                     $e,
-                    __('Something went wrong while deleting the Import')
+                    __('Something went wrong while deleting the Scheduled Import')
                 );
             }
 
             return $resultRedirect->setPath('*/*/');
         }
-        $this->messageManager->addErrorMessage(__('We can\'t find an Import to delete.'));
+        $this->messageManager->addErrorMessage(__('We can\'t find an Scheduled Import to delete.'));
 
         return $resultRedirect->setPath('*/*/');
     }

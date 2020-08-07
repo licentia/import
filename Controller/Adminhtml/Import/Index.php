@@ -39,9 +39,9 @@ class Index extends \Licentia\Import\Controller\Adminhtml\Import
         $resultPage = $this->resultPageFactory->create();
         $resultPage->setActiveMenu('Licentia_Import::import');
         $resultPage->getConfig()
-                   ->getTitle()->prepend(__('Import'));
+                   ->getTitle()->prepend(__('Scheduled Import'));
         $resultPage->addBreadcrumb(__('Sales Automation'), __('Sales Automation'));
-        $resultPage->addBreadcrumb(__('Import'), __('Import'));
+        $resultPage->addBreadcrumb(__('Scheduled Import'), __('Scheduled Import'));
 
         return $resultPage;
     }

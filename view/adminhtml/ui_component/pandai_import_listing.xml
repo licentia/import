@@ -99,39 +99,11 @@
                 </item>
             </argument>
         </column>
-        <column name="entry_type">
-            <argument name="data" xsi:type="array">
-                <item name="options" xsi:type="array">
-                    <item name="admin" xsi:type="array">
-                        <item name="value" xsi:type="string">admin</item>
-                        <item name="label" xsi:type="string" translate="true">Admin Entries</item>
-                    </item>
-                    <item name="frontend" xsi:type="array">
-                        <item name="value" xsi:type="string">frontend</item>
-                        <item name="label" xsi:type="string" translate="true">Frontend Entries</item>
-                    </item>
-                </item>
-                <item name="config" xsi:type="array">
-                    <item name="filter" xsi:type="string">select</item>
-                    <item name="component" xsi:type="string">Magento_Ui/js/grid/columns/select</item>
-                    <item name="label" xsi:type="string" translate="true">Entries Type</item>
-                    <item name="dataType" xsi:type="string">select</item>
-                </item>
-            </argument>
-        </column>
-        <column name="code">
+        <column name="name">
             <argument name="data" xsi:type="array">
                 <item name="config" xsi:type="array">
                     <item name="filter" xsi:type="string">text</item>
-                    <item name="label" xsi:type="string" translate="true">Code</item>
-                </item>
-            </argument>
-        </column>
-        <column name="title">
-            <argument name="data" xsi:type="array">
-                <item name="config" xsi:type="array">
-                    <item name="filter" xsi:type="string">text</item>
-                    <item name="label" xsi:type="string" translate="true">Title</item>
+                    <item name="label" xsi:type="string" translate="true">Name</item>
                 </item>
             </argument>
         </column>
@@ -143,5 +115,33 @@
                 <label translate="true">Active</label>
             </settings>
         </column>
+        <column name="last_executed" class="Magento\Ui\Component\Listing\Columns\Date" component="Magento_Ui/js/grid/columns/date">
+            <settings>
+                <filter>dateRange</filter>
+                <dataType>date</dataType>
+                <label translate="true">Last Executed</label>
+                <timezone>false</timezone>
+                <dateFormat>MMM d, y HH:mm</dateFormat>
+                <fieldClass>
+                    <class name="right">true</class>
+                </fieldClass>
+            </settings>
+        </column>
+        <column name="entity_type" component="Magento_Ui/js/grid/columns/select">
+            <settings>
+                <options class="Licentia\Import\Model\Source\Entity"/>
+                <filter>select</filter>
+                <dataType>select</dataType>
+                <label translate="true">Entity Type</label>
+            </settings>
+        </column>
+        <actionsColumn name="actions" class="Licentia\Import\Ui\Component\Listing\Column\ImportActions">
+            <argument name="data" xsi:type="array">
+                <item name="config" xsi:type="array">
+                    <item name="indexField" xsi:type="string">record_id</item>
+                    <item name="label" xsi:type="string" translate="true">Actions</item>
+                </item>
+            </argument>
+        </actionsColumn>
     </columns>
 </listing>

@@ -31,9 +31,7 @@ class Save extends \Licentia\Import\Controller\Adminhtml\Import
 {
 
     /**
-     * Save action
-     *
-     * @return \Magento\Framework\Controller\ResultInterface
+     * @return \Magento\Backend\Model\View\Result\Redirect|\Magento\Framework\App\ResponseInterface|\Magento\Framework\Controller\ResultInterface|void
      */
     public function execute()
     {
@@ -49,19 +47,26 @@ class Save extends \Licentia\Import\Controller\Adminhtml\Import
             $model = $this->registry->registry('panda_import');
 
             if (!$model->getId() && $id) {
-                $this->messageManager->addErrorMessage(__('This Import no longer exists.'));
+                $this->messageManager->addErrorMessage(__('This Scheduled Import no longer exists.'));
 
                 return $resultRedirect->setPath('*/*/');
             }
 
             try {
+
+                if (isset($data['password']) &&
+                    $data['password'] == \Licentia\Panda\Model\Senders::OBSCURE_PASSWORD_REPLACEMENT) {
+                    unset($data['password']);
+                }
+
                 $model->addData($data);
+
                 $model->save();
 
-                $this->messageManager->addSuccessMessage(__('You saved the Import.'));
+                $this->messageManager->addSuccessMessage(__('You saved the Scheduled Import.'));
                 $this->_getSession()->setFormData(false);
 
-                if ($this->getRequest()->getParam('back') || !$this->getRequest()->getParam('active')) {
+                if ($this->getRequest()->getParam('back')) {
                     return $resultRedirect->setPath(
                         '*/*/edit',
                         [
@@ -77,7 +82,7 @@ class Save extends \Licentia\Import\Controller\Adminhtml\Import
             } catch (\RuntimeException $e) {
                 $this->messageManager->addErrorMessage($e->getMessage());
             } catch (\Exception $e) {
-                $this->messageManager->addExceptionMessage($e, __('Something went wrong while saving the Import. '));
+                $this->messageManager->addExceptionMessage($e, __('Something went wrong while saving the Scheduled Import. '));
             }
 
             $this->_getSession()->setFormData($data);

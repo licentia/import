@@ -41,13 +41,13 @@ class Edit extends \Licentia\Import\Controller\Adminhtml\Import
         $resultPage = $this->resultPageFactory->create();
         $resultPage->setActiveMenu('Licentia_Import::import')
                    ->addBreadcrumb(__('Sales Automation'), __('Sales Automation'))
-                   ->addBreadcrumb(__('Manage Import'), __('Manage Import'));
+                   ->addBreadcrumb(__('Manage Scheduled Import'), __('Manage Scheduled Import'));
 
         return $resultPage;
     }
 
     /**
-     * @return $this|\Magento\Backend\Model\View\Result\Page
+     * @return \Magento\Backend\Model\View\Result\Page|\Magento\Framework\App\ResponseInterface|\Magento\Framework\Controller\Result\Redirect|\Magento\Framework\Controller\ResultInterface|void
      */
     public function execute()
     {
@@ -60,7 +60,7 @@ class Edit extends \Licentia\Import\Controller\Adminhtml\Import
 
         if ($id) {
             if (!$model->getId()) {
-                $this->messageManager->addErrorMessage(__('This Import no longer exists.'));
+                $this->messageManager->addErrorMessage(__('This Scheduled Import no longer exists.'));
                 $resultRedirect = $this->resultRedirectFactory->create();
 
                 return $resultRedirect->setPath('*/*/');
@@ -72,11 +72,13 @@ class Edit extends \Licentia\Import\Controller\Adminhtml\Import
             $model->setData($data);
         }
 
+        $model->setFtpPassword(\Licentia\Panda\Model\Senders::OBSCURE_PASSWORD_REPLACEMENT);
+
         $resultPage = $this->_initAction();
-        $resultPage->addBreadcrumb($id ? __('Edit Import') : __('New Import'),
-            $id ? __('Edit Import') : __('New Import'));
+        $resultPage->addBreadcrumb($id ? __('Edit Scheduled Import') : __('New Scheduled Import'),
+            $id ? __('Edit Scheduled Import') : __('New Scheduled Import'));
         $resultPage->getConfig()
-                   ->getTitle()->prepend(__('Import'));
+                   ->getTitle()->prepend(__('Scheduled Import'));
         $resultPage->getConfig()
                    ->getTitle()->prepend($model->getId() ? $model->getName() : __('New Scheduled Import'));
 

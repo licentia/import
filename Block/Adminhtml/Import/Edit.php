@@ -64,21 +64,28 @@ class Edit extends \Magento\Backend\Block\Widget\Form\Container
             $this->buttonList->remove('reset');
         }
 
+        if ($import->getId()) {
+            $dataAR = [
+                'label'   => __('Run Now'),
+                'onclick' => "setLocation('{$this->getUrl("pandai/import/run",['id'=>$this->getRequest()->getParam('id')])}')",
+            ];
+            $this->buttonList->add('form_run', $dataAR);
+        }
 
         $this->buttonList->remove('save');
         $this->getToolbar()
              ->addChild(
-                 'save-split-button-',
+                 'save-split-button',
                  'Magento\Backend\Block\Widget\Button\SplitButton',
                  [
                      'id'           => 'save-split-button',
-                     'label'        => __('Save Import'),
+                     'label'        => __('Save'),
                      'class_name'   => 'Magento\Backend\Block\Widget\Button\SplitButton',
                      'button_class' => 'widget-button-update',
                      'options'      => [
                          [
                              'id'             => 'save-button',
-                             'label'          => __('Save Import'),
+                             'label'          => __('Save'),
                              'default'        => true,
                              'data_attribute' => [
                                  'mage-init' => [
@@ -91,7 +98,7 @@ class Edit extends \Magento\Backend\Block\Widget\Form\Container
                          ],
                          [
                              'id'             => 'save-continue-button',
-                             'label'          => __('Save Import & Close'),
+                             'label'          => __('Save & Close'),
                              'data_attribute' => [
                                  'mage-init' => [
                                      'button' => [
@@ -105,41 +112,9 @@ class Edit extends \Magento\Backend\Block\Widget\Form\Container
                  ]
              );
 
-        $location = $this->getUrl(
-            '*/*/delete',
-            [
-                'eid'    => $this->getRequest()->getParam('eid'),
-                'tab_id' => 'element_section',
-            ]
-        );
-        $locationReturn = $this->getUrl(
-            '*/*/edit',
-            [
-                'id'     => $this->getRequest()->getParam('id'),
-                'tab_id' => 'element_section',
-            ]
-        );
-
-        $confirm = __('Are you sure?');
-
-        $this->buttonList->update('delete', 'onclick', "deleteConfirm('{$confirm}','{$location}')");
-        $this->buttonList->update('back', 'onclick', "setLocation('{$locationReturn}')");
-
-        if (!$this->getRequest()->getParam('eid')) {
+        if (!$this->getRequest()->getParam('id')) {
             $this->buttonList->remove('delete');
         }
-    }
-
-    /**
-     * @return string
-     */
-    protected function _getSaveAndContinueUrl()
-    {
-
-        return $this->getUrl(
-            '*/*/save',
-            ['_current' => true, 'back' => 'edit', 'tab' => '{{tab_id}}']
-        );
     }
 
     /**
@@ -151,9 +126,9 @@ class Edit extends \Magento\Backend\Block\Widget\Form\Container
     {
 
         if ($import = $this->registry->registry('panda_import')->getId()) {
-            return __("Edit Import '%1'", $this->escapeHtml($import->getName()));
+            return __("Edit Scheduled Import '%1'", $this->escapeHtml($import->getName()));
         } else {
-            return __('New Import');
+            return __('New Scheduled Import');
         }
     }
 }

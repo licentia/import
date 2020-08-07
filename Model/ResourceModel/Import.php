@@ -31,7 +31,7 @@ class Import extends \Magento\Framework\Model\ResourceModel\Db\AbstractDb
     /**
      * @var string
      */
-    protected $_idFieldName = 'form_id';
+    protected $_idFieldName = 'record_id';
 
     /**
      * Initialize resource model
@@ -42,6 +42,6 @@ class Import extends \Magento\Framework\Model\ResourceModel\Db\AbstractDb
     protected function _construct()
     {
 
-        $this->_init('panda_import', 'form_id');
+        $this->_init('panda_import', 'record_id');
     }
 }

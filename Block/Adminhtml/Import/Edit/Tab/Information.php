@@ -341,8 +341,8 @@ class Information extends \Magento\Backend\Block\Widget\Form\Generic
                 "label"    => __('Server Type'),
                 "options"  => [
                     'local' => __('Local'),
-                    'ftp'   => __('Remote (FTP)'),
-                    'ssh'   => __('Remote (SSH)'),
+                    'ftp'   => __('Remote FTP'),
+                    'ssh'   => __('Remote FTP (Secure)'),
                 ],
                 "name"     => 'server_type',
                 "onchange" => 'toggleControlsValidateProtect.run();',
@@ -436,6 +436,17 @@ class Information extends \Magento\Backend\Block\Widget\Form\Generic
         );
 
         $fieldset2->addField(
+            'ftp_port',
+            'text',
+            [
+                'name'  => 'ftp_port',
+                'label' => __('Remote Port'),
+                'title' => __('Remote Password'),
+                'class' => 'input-text validate-digits',
+            ]
+        );
+
+        $fieldset2->addField(
             'ftp_file_mode',
             "select",
             [
@@ -468,33 +479,12 @@ class Information extends \Magento\Backend\Block\Widget\Form\Generic
         );
 
         $fieldset3->addField(
-            'failed_email_receiver',
-            "select",
+            'failed_email_recipient',
+            "text",
             [
-                "label"  => __('Failed Email Receiver'),
-                "values" => $this->emailIdentity->toOptionArray(),
-                "name"   => 'failed_email_receiver',
-            ]
-        );
-
-        $fieldset3->addField(
-            'failed_email_template',
-            "select",
-            [
-                "label"  => __('Failed Email Template'),
-                "values" => $this->emailTemplate->setData('path', 'panda_import_failure_template')->toOptionArray(),
-                "name"   => 'failed_email_template',
-            ]
-        );
-
-        $fieldset3->addField(
-            'failed_email_copy',
-            'text',
-            [
-                'name'  => 'failed_email_copy',
-                'label' => __('Failed Email Copy'),
-                'title' => __('Failed Email Copy'),
-                'class' => 'input-text',
+                "label" => __('Failed Email Recipient'),
+                "name"  => 'failed_email_recipient',
+                "note"  => __('Separate multiple using commas'),
             ]
         );
 
@@ -505,6 +495,16 @@ class Information extends \Magento\Backend\Block\Widget\Form\Generic
                 "label"   => __('Send Copy Email Method'),
                 "options" => ['copy' => __('Copy'), 'bcc' => __('BCC')],
                 "name"    => 'failed_email_copy_method',
+                'note'    => __('If multiple Recipients defined'),
+            ]
+        );
+        $fieldset3->addField(
+            'failed_email_template',
+            "select",
+            [
+                "label"  => __('Failed Email Template'),
+                "values" => $this->emailTemplate->setData('path', 'panda_import_failure_template')->toOptionArray(),
+                "name"   => 'failed_email_template',
             ]
         );
 

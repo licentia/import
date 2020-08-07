@@ -54,13 +54,12 @@ class Save extends \Licentia\Import\Controller\Adminhtml\Import
 
             try {
 
-                if (isset($data['password']) &&
-                    $data['password'] == \Licentia\Panda\Model\Senders::OBSCURE_PASSWORD_REPLACEMENT) {
-                    unset($data['password']);
+                if (isset($data['ftp_password']) &&
+                    $data['ftp_password'] == \Licentia\Panda\Model\Senders::OBSCURE_PASSWORD_REPLACEMENT) {
+                    unset($data['ftp_password']);
                 }
 
                 $model->addData($data);
-
                 $model->save();
 
                 $this->messageManager->addSuccessMessage(__('You saved the Scheduled Import.'));
@@ -82,7 +81,8 @@ class Save extends \Licentia\Import\Controller\Adminhtml\Import
             } catch (\RuntimeException $e) {
                 $this->messageManager->addErrorMessage($e->getMessage());
             } catch (\Exception $e) {
-                $this->messageManager->addExceptionMessage($e, __('Something went wrong while saving the Scheduled Import. '));
+                $this->messageManager->addExceptionMessage($e,
+                    __('Something went wrong while saving the Scheduled Import. '));
             }
 
             $this->_getSession()->setFormData($data);

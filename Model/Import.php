@@ -23,6 +23,7 @@ namespace Licentia\Import\Model;
 use Magento\Framework\App\Filesystem\DirectoryList;
 use Magento\Framework\App\ObjectManager;
 use Magento\ImportExport\Model\Import as MagentoImport;
+use phpseclib\Net\SFTP;
 
 /**
  * Class Import
@@ -31,6 +32,8 @@ use Magento\ImportExport\Model\Import as MagentoImport;
  */
 class Import extends \Magento\Framework\Model\AbstractModel
 {
+
+    const XML_PATH_PANDA_IMPORT_TEMPLATE = 'panda/import/failure/template';
 
     /**
      * Prefix of model events names
@@ -73,7 +76,48 @@ class Import extends \Magento\Framework\Model\AbstractModel
      */
     protected $schedule;
 
+    /**
+     * @var \Magento\Framework\App\Config\ScopeConfigInterface
+     */
+    protected $scopeConfig;
+
+    /**
+     * @var \Magento\Framework\Mail\Template\TransportBuilder
+     */
+    protected $transportBuilder;
+
+    /**
+     * @var \Magento\Store\Model\StoreManagerInterface
+     */
+    protected $storeManager;
+
+    /**
+     * @var \Magento\Framework\Translate\Inline\StateInterface
+     */
+    protected $inlineTranslation;
+
+    /**
+     * Import constructor.
+     *
+     * @param \Magento\Store\Model\StoreManagerInterface                   $storeManager
+     * @param \Magento\Framework\Mail\Template\TransportBuilder            $transportBuilder
+     * @param \Magento\Framework\App\Config\ScopeConfigInterface           $scopeConfig
+     * @param \Magento\Cron\Model\Schedule                                 $schedule
+     * @param MagentoImport                                                $importModel
+     * @param \Magento\Framework\Filesystem                                $filesystem
+     * @param \Licentia\Panda\Helper\Data                                  $pandaHelper
+     * @param \Magento\Framework\Model\Context                             $context
+     * @param \Magento\Framework\Registry                                  $registry
+     * @param \Magento\Framework\Model\ResourceModel\AbstractResource|null $resource
+     * @param \Magento\Framework\Data\Collection\AbstractDb|null           $resourceCollection
+     * @param MagentoImport\ImageDirectoryBaseProvider|null                $imageDirectoryBaseProvider
+     * @param array                                                        $data
+     */
     public function __construct(
+        \Magento\Framework\Translate\Inline\StateInterface $inlineTranslation,
+        \Magento\Store\Model\StoreManagerInterface $storeManager,
+        \Magento\Framework\Mail\Template\TransportBuilder $transportBuilder,
+        \Magento\Framework\App\Config\ScopeConfigInterface $scopeConfig,
         \Magento\Cron\Model\Schedule $schedule,
         MagentoImport $importModel,
         \Magento\Framework\Filesystem $filesystem,
@@ -88,10 +132,14 @@ class Import extends \Magento\Framework\Model\AbstractModel
 
         parent::__construct($context, $registry, $resource, $resourceCollection, $data);
 
+        $this->storeManager = $storeManager;
+        $this->transportBuilder = $transportBuilder;
+        $this->scopeConfig = $scopeConfig;
         $this->schedule = $schedule;
         $this->importModel = $importModel;
         $this->filesystem = $filesystem;
         $this->pandaHelper = $pandaHelper;
+        $this->inlineTranslation = $inlineTranslation;
         $this->imagesDirProvider = $imageDirectoryBaseProvider
                                    ?? ObjectManager::getInstance()
                                                    ->get(\Magento\ImportExport\Model\Import\ImageDirectoryBaseProvider::class);
@@ -150,7 +198,69 @@ class Import extends \Magento\Framework\Model\AbstractModel
     }
 
     /**
+     * @param $message
+     */
+    public function sendErrorEmail($message)
+    {
+
+        try {
+            $emails = explode(',', $this->getFailedEmailRecipient());
+            foreach ($emails as $key => $value) {
+                if (filter_var($value, FILTER_VALIDATE_EMAIL) === false) {
+                    unset($emails[$key]);
+                }
+            }
+            $emails = array_unique($emails);
+            $emails = array_values($emails);
+
+            $recipients = $emails;
+            if ($this->getFailedEmailCopyMethod() == 'bcc') {
+                $recipients = [$emails[0]];
+                unset($emails[0]);
+            }
+
+            $this->inlineTranslation->suspend();
+
+            foreach ($recipients as $email) {
+                $transport = $this->transportBuilder
+                    ->setTemplateIdentifier(
+                        $this->scopeConfig->getValue(
+                            self::XML_PATH_PANDA_IMPORT_TEMPLATE,
+                        )
+                    )->setTemplateOptions(
+                        [
+                            'area'  => \Magento\Backend\App\Area\FrontNameResolver::AREA_CODE,
+                            'store' => \Magento\Store\Model\Store::DEFAULT_STORE_ID,
+                        ]
+                    )
+                    ->setTemplateVars([
+                        'message'     => $message,
+                        'name'        => $this->getName(),
+                        'description' => $this->getDescription(),
+                    ])
+                    ->setFromByScope($this->getFailedEmailSender())
+                    ->addTo($email)
+                    ->getTransport();
+
+                if ($this->getFailedEmailCopyMethod() == 'bcc') {
+                    foreach ($emails as $copy) {
+                        $transport->getMessage()->addBcc($copy);
+                    }
+                }
+
+                $transport->sendMessage();
+            }
+
+            $this->inlineTranslation->resume();
+
+        } catch (\Exception $e) {
+            $this->pandaHelper->logException($e);
+        }
+    }
+
+    /**
      * @return string|null
+     * @throws \Magento\Framework\Exception\LocalizedException
      */
     public function getFullFilePathName()
     {
@@ -180,7 +290,7 @@ class Import extends \Magento\Framework\Model\AbstractModel
             $mediaDir = $this->imagesDirProvider->getDirectory()->getAbsolutePath();
 
             $binary = $this->getFtpFileMode() == 'binary' ? FTP_BINARY : FTP_ASCII;
-            $connId = ftp_connect($this->getFtpHost());
+            $connId = ftp_connect($this->getFtpHost(), $this->getFtpPort() ?? 21);
             if (!@ftp_login($connId, $this->getFtpUsername(), $this->getFtpPassword())) {
                 throw new \Magento\Framework\Exception\LocalizedException(__("Can't connect to FTP"));
             }
@@ -239,6 +349,68 @@ class Import extends \Magento\Framework\Model\AbstractModel
 
             ftp_close($connId);
         }
+        if ($this->getServerType() == 'ssh') {
+
+            $fileDir = $this->getFileDirectory();
+            $fileName = $fileDir . $this->getFileName();
+            $archiveDir = $fileDir . 'archives/';
+
+            $localFile = $this->filesystem->getDirectoryWrite(DirectoryList::VAR_DIR)
+                                          ->getAbsolutePath('importexport/' . $this->getEntityType() . '.csv');
+
+            $mediaDir = $this->imagesDirProvider->getDirectory()->getAbsolutePath();
+
+            $sftp = new SFTP($this->getFtpHost(), $this->getFtpPort() ?? 22);
+            if (!$sftp->login($this->getFtpUsername(), $this->getFtpPassword())) {
+                throw  new \Magento\Framework\Exception\LocalizedException(__("Can't connect to SERVER"));
+            }
+
+            if ($this->getAfterImport() == 'archive') {
+
+                if (!$sftp->rawlist($archiveDir)) {
+                    $sftp->mkdir($archiveDir);
+                }
+                if (!$sftp->rawlist($this->getImportImagesFileDir() . 'archives/')) {
+                    $sftp->mkdir($this->getImportImagesFileDir() . 'archives/');
+                }
+
+            }
+
+            $images = $sftp->rawlist($this->getImportImagesFileDir());
+
+            foreach ($images as $image) {
+
+                if ($image['type'] != 1) {
+                    continue;
+                }
+
+                $type = pathinfo($image['filename'], PATHINFO_EXTENSION);
+
+                if (!in_array(strtolower($type), ['png', 'jpg', 'jpeg'])) {
+                    continue;
+                }
+
+                $sftp->get($this->getImportImagesFileDir() . $image['filename'], $mediaDir . $image['filename']);
+
+                if ($this->getAfterImport() == 'archive') {
+                    $sftp->rename($this->getImportImagesFileDir() . $image['filename'],
+                        $this->getImportImagesFileDir() . 'archives/' . $image['filename']);
+                }
+                if ($this->getAfterImport() == 'delete') {
+                    $sftp->delete($this->getImportImagesFileDir() . $image['filename'], false);
+                }
+            }
+
+            $sftp->get($fileName, $localFile);
+
+            if ($this->getAfterImport() == 'archive') {
+                $sftp->rename($fileName, $archiveDir . $this->getFileName());
+            }
+
+            if ($this->getAfterImport() == 'delete') {
+                $sftp->delete($sftp, $fileName);
+            }
+        }
 
         return $localFile;
     }
@@ -272,8 +444,7 @@ class Import extends \Magento\Framework\Model\AbstractModel
         try {
             $this->importModel->importSource();
         } catch (\Exception $e) {
-            echo $e->getMessage();
-            die();
+            $this->sendErrorEmail($e->getMessage());
         }
 
         if (!$this->importModel->getErrorAggregator()->hasToBeTerminated()) {
@@ -557,17 +728,6 @@ class Import extends \Magento\Framework\Model\AbstractModel
     }
 
     /**
-     * @param $failedEmailReceiver
-     *
-     * @return $this
-     */
-    public function setFailedEmailReceiver($failedEmailReceiver)
-    {
-
-        return $this->setData('failed_email_receiver', $failedEmailReceiver);
-    }
-
-    /**
      * @param $failedEmailSender
      *
      * @return $this
@@ -587,17 +747,6 @@ class Import extends \Magento\Framework\Model\AbstractModel
     {
 
         return $this->setData('failed_email_template', $failedEmailTemplate);
-    }
-
-    /**
-     * @param $failedEmailCopy
-     *
-     * @return $this
-     */
-    public function setFailedEmailCopy($failedEmailCopy)
-    {
-
-        return $this->setData('failed_email_copy', $failedEmailCopy);
     }
 
     /**
@@ -803,15 +952,6 @@ class Import extends \Magento\Framework\Model\AbstractModel
     /**
      * @return mixed
      */
-    public function getFailedEmailReceiver()
-    {
-
-        return $this->getData('failed_email_receiver');
-    }
-
-    /**
-     * @return mixed
-     */
     public function getFailedEmailSender()
     {
 
@@ -825,15 +965,6 @@ class Import extends \Magento\Framework\Model\AbstractModel
     {
 
         return $this->getData('failed_email_template');
-    }
-
-    /**
-     * @return mixed
-     */
-    public function getFailedEmailCopy()
-    {
-
-        return $this->getData('failed_email_copy');
     }
 
     /**
@@ -903,5 +1034,45 @@ class Import extends \Magento\Framework\Model\AbstractModel
     {
 
         return $this->getData('after_import');
+    }
+
+    /**
+     * @param $failedEmailRecipient
+     *
+     * @return $this
+     */
+    public function setFailedEmailRecipient($failedEmailRecipient)
+    {
+
+        return $this->setData('failed_email_recipient', $failedEmailRecipient);
+    }
+
+    /**
+     * @return mixed
+     */
+    public function getFailedEmailRecipient()
+    {
+
+        return $this->getData('failed_email_recipient');
+    }
+
+    /**
+     * @param $ftpPort
+     *
+     * @return $this
+     */
+    public function setFtpPort($ftpPort)
+    {
+
+        return $this->setData('ftp_port', $ftpPort);
+    }
+
+    /**
+     * @return mixed
+     */
+    public function getFtpPort()
+    {
+
+        return $this->getData('ftp_port');
     }
 }

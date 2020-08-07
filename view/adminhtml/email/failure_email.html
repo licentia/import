@@ -16,9 +16,11 @@
   ~
   -->
 
-<!--@subject {{trans 'Validate your entry on %formName' formName="$form.getTitle()"}} @--><!--@vars {
-"var $data.getLink()":"Validation URL",
-"var $data.getFormTitle()":"Form Title"
+<!--@subject {{trans 'Issues with your Schedule Import %name' formName="$name"}} @-->
+<!--@vars {
+"var name":"Name",
+"var description":"Description",
+"var message":"Error Message"
 } @-->
 
 {{template config_path="design/email/header_template"}}
@@ -27,9 +29,8 @@
     <tr class="email-intro">
         <td>
             <p class="greeting"></p>
-            <p>{{trans 'Thank you for your submission on %formName' formName="$form.getTitle()" |raw}}.</p>
-            <p>{{trans 'You must validate it by clicking <a href="%link_url">here</a>'
-                link_url="$data.getLink()"|raw}}.</p>
+            <p>{{trans 'There was a problem while processing your schedule import"}}.</p>
+            <p>{{{var message}}</p>
         </td>
     </tr>
 </table>

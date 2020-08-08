@@ -17,6 +17,6 @@
   -->
 <config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Backend:etc/menu.xsd">
     <menu>
-        <add id="Licentia_Import::import" title="Import (Schedule)" module="Licentia_Import" sortOrder="40" parent="Magento_Backend::system_convert" action="pandai/import" resource="Licentia_Import::import"/>
+        <add id="Licentia_Import::import" title="Import - Schedule" module="Licentia_Import" sortOrder="40" parent="Magento_Backend::system_convert" action="pandai/import" resource="Licentia_Import::import"/>
     </menu>
 </config>

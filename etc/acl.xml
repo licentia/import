@@ -21,7 +21,7 @@
             <resource id="Magento_Backend::admin">
                 <resource id="Magento_Backend::system">
                     <resource id="Magento_Backend::convert">
-                        <resource id="Licentia_Import::import" title="Import (Schedule)" translate="title" sortOrder="40"/>
+                        <resource id="Licentia_Import::import" title="Import - Schedule" translate="title" sortOrder="40"/>
                     </resource>
                 </resource>
             </resource>

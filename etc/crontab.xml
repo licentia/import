@@ -18,7 +18,7 @@
 <config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Cron:etc/crontab.xsd">
     <group id="panda">
         <job name="panda_import_data" instance="Licentia\Import\Cron\ImportData" method="cron">
-            <schedule>*/5 * * * *</schedule>
+            <schedule>*/2 * * * *</schedule>
         </job>
     </group>
 </config>

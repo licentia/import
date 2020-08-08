@@ -23,6 +23,7 @@ namespace Licentia\Import\Model;
 use Magento\Framework\App\Filesystem\DirectoryList;
 use Magento\Framework\App\ObjectManager;
 use Magento\ImportExport\Model\Import as MagentoImport;
+use Magento\ImportExport\Model\Import\Adapter;
 use phpseclib\Net\SFTP;
 
 /**
@@ -207,6 +208,9 @@ class Import extends \Magento\Framework\Model\AbstractModel
         return parent::validateBeforeSave();
     }
 
+    /**
+     *
+     */
     public function executeCron()
     {
 
@@ -486,7 +490,12 @@ class Import extends \Magento\Framework\Model\AbstractModel
                 $data['_import_field_separator'] = $this->getImportFieldSeparator();
                 $data['_import_multiple_value_separator'] = $this->getImportMultipleValueSeparator();
                 $data['_import_empty_attribute_value_constant'] = $this->getImportEmptyAttributeValueConstant();
-                $data['import_images_file_dir'] = $this->getImportImagesFileDir();
+
+                if ($this->getServerType() == 'local') {
+                    $data['import_images_file_dir'] = $this->getImportImagesFileDir();
+                } else {
+                    $data['import_images_file_dir'] = '';
+                }
                 $data['import_file'] = $fullFileNamePath;
 
                 $this->importModel->setData($data);
@@ -496,6 +505,8 @@ class Import extends \Magento\Framework\Model\AbstractModel
                     $this->importModel->getData(MagentoImport::FIELD_NAME_VALIDATION_STRATEGY),
                     $this->importModel->getData(MagentoImport::FIELD_NAME_ALLOWED_ERROR_COUNT)
                 );
+
+                $this->importModel->validateSource($this->getSource($fullFileNamePath));
 
                 $this->importModel->importSource();
             } else {
@@ -555,7 +566,7 @@ class Import extends \Magento\Framework\Model\AbstractModel
 
                         $this->filesystem->getDirectoryWrite(DirectoryList::ROOT)
                                          ->renameFile($file->getRealPath(),
-                                             $archiveMediaDir . date('Y-m-d_H-i') . '_' . $file->getFileName());
+                                             $archiveMediaDir . 'panda_' . date('Y-m-d_H-i') . '_' . $file->getFileName());
                     }
                     if ($this->getAfterImport() == 'delete') {
                         $this->filesystem->getDirectoryWrite(DirectoryList::ROOT)
@@ -575,15 +586,16 @@ class Import extends \Magento\Framework\Model\AbstractModel
             if ($this->getAfterImport() == 'archive') {
 
                 $archivesDirExists = $this->filesystem->getDirectoryRead(DirectoryList::ROOT)
-                                                      ->isDirectory($fileDir . 'archives');
+                                                      ->isDirectory('var/import_history');
                 if (!$archivesDirExists) {
                     $this->filesystem->getDirectoryWrite(DirectoryList::ROOT)
-                                     ->create($fileDir . 'archives');
+                                     ->create('var/import_history');
                 }
-                $archiveDir = $fileDir . 'archives/';
+                $archiveDir = 'var/import_history/';
 
                 $this->filesystem->getDirectoryWrite(DirectoryList::ROOT)
-                                 ->renameFile($localFile, $archiveDir . date('Y-m-d_H-i') . '_' . $this->getFileName());
+                                 ->renameFile($localFile,
+                                     $archiveDir . 'panda_' . date('Y-m-d_H-i') . '_' . $this->getFileName());
             }
 
             if ($this->getAfterImport() == 'delete') {
@@ -596,42 +608,18 @@ class Import extends \Magento\Framework\Model\AbstractModel
     }
 
     /**
-     * @return array
-     */
-    public function toFormValues()
-    {
-
-        $values = $this->toOptionArray();
-
-        $return = [];
-        foreach ($values as $rule) {
-            $return[$rule['value']] = $rule['label'];
-        }
-
-        return $return;
-    }
-
-    /**
-     * @param bool $first
+     * @param $sourceFile
      *
-     * @return array
+     * @return MagentoImport\AbstractSource
      */
-    public function toOptionArray($first = false)
+    public function getSource($sourceFile)
     {
 
-        $collection = $this->getCollection();
-
-        $return = [];
-
-        if ($first) {
-            $return[] = ['value' => '0', 'label' => $first];
-        }
-
-        foreach ($collection as $item) {
-            $return[] = ['value' => $item->getId(), 'label' => $item->getName()];
-        }
-
-        return $return;
+        return Adapter::findAdapterFor(
+            $sourceFile,
+            $this->filesystem->getDirectoryWrite(DirectoryList::ROOT),
+            $this->getData(MagentoImport::FIELD_FIELD_SEPARATOR)
+        );
     }
 
     /**
@@ -1038,6 +1026,10 @@ class Import extends \Magento\Framework\Model\AbstractModel
      */
     public function getImportImagesFileDir()
     {
+
+        if (!$this->getData('import_images_file_dir')) {
+            return '';
+        }
 
         return rtrim($this->getData('import_images_file_dir'), '/') . '/';
     }

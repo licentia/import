@@ -407,9 +407,11 @@ class Information extends \Magento\Backend\Block\Widget\Form\Generic
                 'label'    => __('File Directory'),
                 'title'    => __('File Directory'),
                 'required' => true,
+                'value'    => 'var/importexport',
                 'class'    => 'input-text',
                 'note'     => __('For Type "Local" use relative path to Magento installation, ' .
-                                 'e.g. var/export, var/import, var/export/some/dir<br><br>For "Remote" use the full path, e.g. /home/user/uploads/'),
+                                 'e.g. var/export, var/import, var/export/some/dir<br><br>For "Remote" use the full ' .
+                                 'path, e.g. /home/user/uploads/'),
             ]
         );
 

@@ -136,7 +136,7 @@
                     <item name="component" xsi:type="string">Magento_Ui/js/grid/columns/select</item>
                     <item name="label" xsi:type="string" translate="true">Last Outcome</item>
                     <item name="dataType" xsi:type="string">select</item>
-                    <item name="fieldClass" xsi:type="string">column_120</item>
+                    <item name="fieldClass" xsi:type="string">column_200</item>
                 </item>
             </argument>
         </column>

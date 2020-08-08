@@ -391,7 +391,7 @@ class Information extends \Magento\Backend\Block\Widget\Form\Generic
                 "options"  => [
                     'local' => __('Local'),
                     'ftp'   => __('Remote FTP'),
-                    'ssh'   => __('Remote FTP (Secure)'),
+                    'ssh'   => __('Remote SFTP'),
                 ],
                 "name"     => 'server_type',
                 "onchange" => 'toggleControlsValidateProtect.run();',

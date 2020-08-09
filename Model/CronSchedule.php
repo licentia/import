@@ -174,7 +174,7 @@ class CronSchedule
      *
      * @return CronSchedule
      */
-    final public static function fromCronString($cronSpec = '* * * * * *', $language = 'en')
+    public static function fromCronString($cronSpec = '* * * * * *', $language = 'en')
     {
 
         // Split input liberal. Single or multiple Spaces, Tabs and Newlines are all allowed as separators.
@@ -251,7 +251,7 @@ class CronSchedule
      * @return array
      * @throws \Exception
      */
-    final private function cronInterpret($specification, $rangeMin, $rangeMax, $namedItems, $errorName)
+    private function cronInterpret($specification, $rangeMin, $rangeMax, $namedItems, $errorName)
     {
 
         if ((!is_string($specification)) && (!(is_int($specification)))) {
@@ -273,7 +273,7 @@ class CronSchedule
 
             //if(!$hasRange && $hasInterval)                                                throw new \Exception("Invalid Range ($errorName).");
 
-            // Check: Increment must be final specification
+            // Check: Increment must be specification
 
             if ($hasRange && $hasInterval) {
                 if ($posIncrement < $posRange) {
@@ -381,7 +381,7 @@ class CronSchedule
      *
      * @return array
      */
-    final private function cronCreateItems($cronInterpreted)
+    private function cronCreateItems($cronInterpreted)
     {
 
         $items = [];
@@ -419,7 +419,7 @@ class CronSchedule
      *
      * @return array|false
      */
-    final private function dtFromParameters($time = false)
+    private function dtFromParameters($time = false)
     {
 
         if ($time === false) {
@@ -444,7 +444,7 @@ class CronSchedule
      *
      * @return false|string
      */
-    final private function dtAsString($arrDt)
+    private function dtAsString($arrDt)
     {
 
         if ($arrDt === false) {
@@ -473,7 +473,7 @@ class CronSchedule
      *
      * @return bool
      */
-    final public function match($time = false)
+    public function match($time = false)
     {
 
         // Convert parameters to array datetime
@@ -535,7 +535,7 @@ class CronSchedule
      *
      * @return array|false
      */
-    final public function next($time = false)
+    public function next($time = false)
     {
 
         // Convert parameters to array datetime
@@ -610,7 +610,7 @@ class CronSchedule
      *
      * @return false|string
      */
-    final public function nextAsString($time = false)
+    public function nextAsString($time = false)
     {
 
         return $this->dtAsString($this->next($time));
@@ -621,7 +621,7 @@ class CronSchedule
      *
      * @return false|int
      */
-    final public function nextAsTime($time = false)
+    public function nextAsTime($time = false)
     {
 
         return strtotime($this->dtAsString($this->next($time)));
@@ -649,7 +649,7 @@ class CronSchedule
      *
      * @return bool
      */
-    final private function advanceItem($arrItems, $rangeMin, $rangeMax, &$current)
+    private function advanceItem($arrItems, $rangeMin, $rangeMax, &$current)
     {
 
         // Advance pointer
@@ -694,7 +694,7 @@ class CronSchedule
      *
      * @return false|int|string|null
      */
-    final private function getEarliestItem($arrItems, $afterItem = false, $allowOverflow = true)
+    private function getEarliestItem($arrItems, $afterItem = false, $allowOverflow = true)
     {
 
         // If no filter is specified, return the earliest listed item.
@@ -747,7 +747,7 @@ class CronSchedule
      *
      * @return array|false
      */
-    final public function previous($time = false)
+    public function previous($time = false)
     {
 
         // Convert parameters to array datetime
@@ -822,7 +822,7 @@ class CronSchedule
      *
      * @return false|string
      */
-    final public function previousAsString($time = false)
+    public function previousAsString($time = false)
     {
 
         return $this->dtAsString($this->previous($time));
@@ -833,7 +833,7 @@ class CronSchedule
      *
      * @return false|int
      */
-    final public function previousAsTime($time = false)
+    public function previousAsTime($time = false)
     {
 
         return strtotime($this->dtAsString($this->previous($time)));
@@ -861,7 +861,7 @@ class CronSchedule
      *
      * @return bool
      */
-    final private function recedeItem($arrItems, $rangeMin, $rangeMax, &$current)
+    private function recedeItem($arrItems, $rangeMin, $rangeMax, &$current)
     {
 
         // Recede pointer
@@ -906,7 +906,7 @@ class CronSchedule
      *
      * @return false|int|string|null
      */
-    final private function getLatestItem($arrItems, $beforeItem = false, $allowOverflow = true)
+    private function getLatestItem($arrItems, $beforeItem = false, $allowOverflow = true)
     {
 
         // If no filter is specified, return the latestlisted item.
@@ -953,7 +953,7 @@ class CronSchedule
      *
      * @return string
      */
-    final private function getClass($spec)
+    private function getClass($spec)
     {
 
         if (!$this->classIsSpecified($spec)) {
@@ -983,7 +983,7 @@ class CronSchedule
      *
      * @return bool
      */
-    final private function classIsSpecified($spec)
+    private function classIsSpecified($spec)
     {
 
         if ($spec['elements'][0]['hasInterval'] == false) {
@@ -1019,7 +1019,7 @@ class CronSchedule
      *
      * @return bool
      */
-    final private function classIsSingleFixed($spec)
+    private function classIsSingleFixed($spec)
     {
 
         return (count($spec['elements']) == 1) && (!$spec['elements'][0]['hasInterval']);
@@ -1028,7 +1028,7 @@ class CronSchedule
     /**
      * @param string $language
      */
-    final private function initLang($language = 'en')
+    private function initLang($language = 'en')
     {
 
         switch ($language) {
@@ -1159,7 +1159,7 @@ class CronSchedule
      *
      * @return string
      */
-    final private function natlangPad2($number)
+    private function natlangPad2($number)
     {
 
         return (strlen($number) == 1 ? '0' : '') . $number;
@@ -1176,7 +1176,7 @@ class CronSchedule
      *
      * @return mixed|string|string[]
      */
-    final private function natlangApply(
+    private function natlangApply(
         $id,
         $p1 = false,
         $p2 = false,
@@ -1228,7 +1228,7 @@ class CronSchedule
      *
      * @return string
      */
-    final private function natlangRange($spec, $entryFunction, $p1 = false)
+    private function natlangRange($spec, $entryFunction, $p1 = false)
     {
 
         $arrIntervals = [];
@@ -1256,7 +1256,7 @@ class CronSchedule
      *
      * @return mixed|string|string[]
      */
-    final private function natlangElementMinute($elem)
+    private function natlangElementMinute($elem)
     {
 
         if (!$elem['hasInterval']) {
@@ -1292,7 +1292,7 @@ class CronSchedule
      *
      * @return mixed|string|string[]
      */
-    final private function natlangElementHour($elem, $asBetween)
+    private function natlangElementHour($elem, $asBetween)
     {
 
         if (!$elem['hasInterval']) {
@@ -1332,7 +1332,7 @@ class CronSchedule
      *
      * @return mixed|string|string[]
      */
-    final private function natlangElementDayOfMonth($elem)
+    private function natlangElementDayOfMonth($elem)
     {
 
         if (!$elem['hasInterval']) {
@@ -1362,7 +1362,7 @@ class CronSchedule
      *
      * @return mixed|string|string[]
      */
-    final private function natlangElementMonth($elem)
+    private function natlangElementMonth($elem)
     {
 
         if (!$elem['hasInterval']) {
@@ -1392,7 +1392,7 @@ class CronSchedule
      *
      * @return mixed|string|string[]
      */
-    final private function natlangElementYear($elem)
+    private function natlangElementYear($elem)
     {
 
         if (!$elem['hasInterval']) {
@@ -1422,7 +1422,7 @@ class CronSchedule
     /**
      * @return string
      */
-    final public function asNaturalLanguage()
+    public function asNaturalLanguage()
     {
 
         $switchForceDateExplaination = false;

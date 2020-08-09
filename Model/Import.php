@@ -254,20 +254,20 @@ class Import extends \Magento\Framework\Model\AbstractModel
             }
 
             foreach ($recipients as $email) {
-                $transport = $this->transportBuilder
-                    ->setTemplateIdentifier('panda_import_failure_template',)->setTemplateOptions(
-                        [
-                            'area'  => \Magento\Backend\App\Area\FrontNameResolver::AREA_CODE,
-                            'store' => \Magento\Store\Model\Store::DEFAULT_STORE_ID,
-                        ]
-                    )
-                    ->setTemplateVars([
-                        'message' => $message,
-                        'name'    => $this->getName(),
-                    ])
-                    ->setFromByScope($this->getFailedEmailSender())
-                    ->addTo($email)
-                    ->getTransport();
+                $transport = $this->transportBuilder->setTemplateIdentifier('panda_import_failure_template')
+                                                    ->setTemplateOptions(
+                                                        [
+                                                            'area'  => \Magento\Backend\App\Area\FrontNameResolver::AREA_CODE,
+                                                            'store' => \Magento\Store\Model\Store::DEFAULT_STORE_ID,
+                                                        ]
+                                                    )
+                                                    ->setTemplateVars([
+                                                        'message' => $message,
+                                                        'name'    => $this->getName(),
+                                                    ])
+                                                    ->setFromByScope($this->getFailedEmailSender())
+                                                    ->addTo($email)
+                                                    ->getTransport();
 
                 if ($this->getFailedEmailCopyMethod() == 'bcc') {
                     foreach ($emails as $copy) {
@@ -319,7 +319,7 @@ class Import extends \Magento\Framework\Model\AbstractModel
 
             $binary = $this->getFtpFileMode() == 'binary' ? FTP_BINARY : FTP_ASCII;
             $connId = ftp_connect($this->getFtpHost(), $this->getFtpPort() ?? 21);
-            if (!@ftp_login($connId, $this->getFtpUsername(), $this->getFtpPassword())) {
+            if (!ftp_login($connId, $this->getFtpUsername(), $this->getFtpPassword())) {
                 $this->importModel->getErrorAggregator()->addError(
                     \Magento\ImportExport\Model\Import\Entity\AbstractEntity::ERROR_CODE_SYSTEM_EXCEPTION,
                     \Magento\ImportExport\Model\Import\ErrorProcessing\ProcessingError::ERROR_LEVEL_CRITICAL,
@@ -346,16 +346,18 @@ class Import extends \Magento\Framework\Model\AbstractModel
             }
 
             if ($this->getAfterImport() == 'archive') {
-
-                $currentDir = ftp_pwd($connId);
-                if (!ftp_chdir($connId, $archiveDir)) {
-                    ftp_mkdir($connId, $archiveDir);
+                try {
+                    $currentDir = ftp_pwd($connId);
+                    if (!ftp_chdir($connId, $archiveDir)) {
+                        ftp_mkdir($connId, $archiveDir);
+                    }
+                    ftp_chdir($connId, $currentDir);
+                    if (!ftp_chdir($connId, $this->getImportImagesFileDir() . 'archives/')) {
+                        ftp_mkdir($connId, $this->getImportImagesFileDir() . 'archives/');
+                    }
+                    ftp_chdir($connId, $currentDir);
+                } catch (\Exception $e) {
                 }
-                ftp_chdir($connId, $currentDir);
-                if (!@ftp_chdir($connId, $this->getImportImagesFileDir() . 'archives/')) {
-                    ftp_mkdir($connId, $this->getImportImagesFileDir() . 'archives/');
-                }
-                ftp_chdir($connId, $currentDir);
             }
 
             $images = ftp_mlsd($connId, $this->getImportImagesFileDir());

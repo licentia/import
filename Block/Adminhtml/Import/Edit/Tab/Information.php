@@ -274,7 +274,6 @@ class Information extends \Magento\Backend\Block\Widget\Form\Generic
                 'name'     => 'after_import',
                 'title'    => __('After Import Action'),
                 'label'    => __('After Import Action'),
-                'required' => true,
                 "options"  => [
                     'archive' => __('Archive Files'),
                     'delete'  => __('Delete Files'),
@@ -345,32 +344,74 @@ class Information extends \Magento\Backend\Block\Widget\Form\Generic
                             $("div.admin__field.field.field-ftp_password").show();
                             $("div.admin__field.field.field-ftp_file_mode").show();
                             $("div.admin__field.field.field-ftp_passive_mode").show();
+                            $("div.admin__field.field.field-file_directory").show();
+                            $("div.admin__field.field.field-file_name").show();
+                            $("div.admin__field.field.field-import_images_file_dir").show();
+                            $("div.admin__field.field.field-remote_url").hide();
+                            $("div.admin__field.field.field-remote_username").hide();
+                            $("div.admin__field.field.field-remote_password").hide();
                             
                             $("#ftp_host").addClass("required-entry");
                             $("#ftp_username").addClass("required-entry");
                             $("#ftp_password").addClass("required-entry");
+                            $("#file_name").addClass("required-entry");
+                            $("#remote_url").removeClass("required-entry");
                         }else if($("#server_type").val() == "ssh"){
+                            $("div.admin__field.field.field-import_images_file_dir").show();
+                            $("div.admin__field.field.field-file_directory").show();
+                            $("div.admin__field.field.field-file_name").show();
                             $("div.admin__field.field.field-ftp_host").show();
                             $("div.admin__field.field.field-ftp_port").show();
                             $("div.admin__field.field.field-ftp_username").show();
                             $("div.admin__field.field.field-ftp_password").show();
                             $("div.admin__field.field.field-ftp_file_mode").hide();
                             $("div.admin__field.field.field-ftp_passive_mode").hide();
+                            $("div.admin__field.field.field-remote_url").hide();
+                            $("div.admin__field.field.field-remote_username").hide();
+                            $("div.admin__field.field.field-remote_password").hide();
                             
+                            $("#remote_url").removeClass("required-entry");
                             $("#ftp_host").addClass("required-entry");
                             $("#ftp_username").addClass("required-entry");
                             $("#ftp_password").addClass("required-entry");
-                        }else{ 
-                            $("#ftp_host").removeClass("required-entry");
-                            $("#ftp_username").removeClass("required-entry");
-                            $("#ftp_password").removeClass("required-entry");
-                          
+                            $("#file_name").addClass("required-entry");
+                        }else if($("#server_type").val() == "url"){
+                            $("div.admin__field.field.field-import_images_file_dir").hide();
+                            $("div.admin__field.field.field-file_directory").hide();
+                            $("div.admin__field.field.field-file_name").hide();
                             $("div.admin__field.field.field-ftp_host").hide();
                             $("div.admin__field.field.field-ftp_port").hide();
                             $("div.admin__field.field.field-ftp_username").hide();
                             $("div.admin__field.field.field-ftp_password").hide();
                             $("div.admin__field.field.field-ftp_file_mode").hide();
                             $("div.admin__field.field.field-ftp_passive_mode").hide();
+                            $("div.admin__field.field.field-remote_url").show();
+                            $("div.admin__field.field.field-remote_username").show();
+                            $("div.admin__field.field.field-remote_password").show();
+                            
+                            $("#remote_url").addClass("required-entry");
+                            $("#ftp_host").removeClass("required-entry");
+                            $("#ftp_username").removeClass("required-entry");
+                            $("#ftp_password").removeClass("required-entry");
+                            $("#file_name").removeClass("required-entry");
+                        }else{ 
+                            $("#ftp_host").removeClass("required-entry");
+                            $("#ftp_username").removeClass("required-entry");
+                            $("#ftp_password").removeClass("required-entry");
+                            $("#file_name").addClass("required-entry");
+                          
+                            $("div.admin__field.field.field-file_directory").show();
+                            $("div.admin__field.field.field-file_name").show();
+                            $("div.admin__field.field.field-import_images_file_dir").show();
+                            $("div.admin__field.field.field-ftp_host").hide();
+                            $("div.admin__field.field.field-ftp_port").hide();
+                            $("div.admin__field.field.field-ftp_username").hide();
+                            $("div.admin__field.field.field-ftp_password").hide();
+                            $("div.admin__field.field.field-ftp_file_mode").hide();
+                            $("div.admin__field.field.field-ftp_passive_mode").hide();
+                            $("div.admin__field.field.field-remote_url").hide();
+                            $("div.admin__field.field.field-remote_username").hide();
+                            $("div.admin__field.field.field-remote_password").hide();
                         }
                     }
                 }
@@ -392,6 +433,7 @@ class Information extends \Magento\Backend\Block\Widget\Form\Generic
                     'local' => __('Local'),
                     'ftp'   => __('Remote FTP'),
                     'ssh'   => __('Remote SFTP'),
+                    'url'   => __('URL'),
                 ],
                 "name"     => 'server_type',
                 "onchange" => 'toggleControlsValidateProtect.run();',
@@ -471,6 +513,40 @@ class Information extends \Magento\Backend\Block\Widget\Form\Generic
                 'title'    => __('FTP Username'),
                 'required' => true,
                 'class'    => 'input-text',
+            ]
+        );
+
+        $fieldset2->addField(
+            'remote_url',
+            'text',
+            [
+                'name'     => 'remote_url',
+                'label'    => __('URL'),
+                'title'    => __('URL'),
+                'class'    => 'input-text',
+                'required' => true,
+            ]
+        );
+
+        $fieldset2->addField(
+            'remote_username',
+            'text',
+            [
+                'name'  => 'remote_username',
+                'label' => __('Basic Auth Username'),
+                'title' => __('Basic Auth Username'),
+                'class' => 'input-text',
+            ]
+        );
+
+        $fieldset2->addField(
+            'remote_password',
+            'password',
+            [
+                'name'  => 'remote_password',
+                'label' => __('Basic Auth Password'),
+                'title' => __('Basic Auth Password'),
+                'class' => 'input-text',
             ]
         );
 

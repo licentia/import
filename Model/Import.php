@@ -25,6 +25,7 @@ use Magento\Framework\App\ObjectManager;
 use Magento\ImportExport\Model\Import as MagentoImport;
 use Magento\ImportExport\Model\Import\Adapter;
 use phpseclib\Net\SFTP;
+use \Magento\ImportExport\Model\Import\ImageDirectoryBaseProvider;
 
 /**
  * Class Import
@@ -71,7 +72,7 @@ class Import extends \Magento\Framework\Model\AbstractModel
     protected $importModel;
 
     /**
-     * @var MagentoImport\ImageDirectoryBaseProvider|mixed
+     * @var ImageDirectoryBaseProvider|mixed
      */
     protected $imagesDirProvider;
 
@@ -96,8 +97,14 @@ class Import extends \Magento\Framework\Model\AbstractModel
     protected $inlineTranslation;
 
     /**
+     * @var \Magento\Framework\HTTP\Client\Curl
+     */
+    protected $curl;
+
+    /**
      * Import constructor.
      *
+     * @param \Magento\Framework\HTTP\Client\Curl                          $curl
      * @param \Magento\Framework\Translate\Inline\StateInterface           $inlineTranslation
      * @param \Magento\Store\Model\StoreManagerInterface                   $storeManager
      * @param \Magento\Framework\Mail\Template\TransportBuilder            $transportBuilder
@@ -110,9 +117,10 @@ class Import extends \Magento\Framework\Model\AbstractModel
      * @param \Magento\Framework\Model\ResourceModel\AbstractResource|null $resource
      * @param \Magento\Framework\Data\Collection\AbstractDb|null           $resourceCollection
      * @param array                                                        $data
-     * @param MagentoImport\ImageDirectoryBaseProvider|null                $imageDirectoryBaseProvider
+     * @param ImageDirectoryBaseProvider|null                              $imageDirectoryBaseProvider
      */
     public function __construct(
+        \Magento\Framework\HTTP\Client\Curl $curl,
         \Magento\Framework\Translate\Inline\StateInterface $inlineTranslation,
         \Magento\Store\Model\StoreManagerInterface $storeManager,
         \Magento\Framework\Mail\Template\TransportBuilder $transportBuilder,
@@ -125,11 +133,12 @@ class Import extends \Magento\Framework\Model\AbstractModel
         \Magento\Framework\Model\ResourceModel\AbstractResource $resource = null,
         \Magento\Framework\Data\Collection\AbstractDb $resourceCollection = null,
         array $data = [],
-        ?\Magento\ImportExport\Model\Import\ImageDirectoryBaseProvider $imageDirectoryBaseProvider = null
+        ?ImageDirectoryBaseProvider $imageDirectoryBaseProvider = null
     ) {
 
         parent::__construct($context, $registry, $resource, $resourceCollection, $data);
 
+        $this->curl = $curl;
         $this->storeManager = $storeManager;
         $this->transportBuilder = $transportBuilder;
         $this->scopeConfig = $scopeConfig;
@@ -138,8 +147,7 @@ class Import extends \Magento\Framework\Model\AbstractModel
         $this->pandaHelper = $pandaHelper;
         $this->inlineTranslation = $inlineTranslation;
         $this->imagesDirProvider = $imageDirectoryBaseProvider
-                                   ?? ObjectManager::getInstance()
-                                                   ->get(\Magento\ImportExport\Model\Import\ImageDirectoryBaseProvider::class);
+                                   ?? ObjectManager::getInstance()->get(ImageDirectoryBaseProvider::class);
     }
 
     /**
@@ -162,6 +170,9 @@ class Import extends \Magento\Framework\Model\AbstractModel
         if ($this->getFtpPassword()) {
             $this->setFtpPassword($this->pandaHelper->getEncryptor()->decrypt($this->getFtpPassword()));
         }
+        if ($this->getRemotePassword()) {
+            $this->setRemotePassword($this->pandaHelper->getEncryptor()->decrypt($this->getRemotePassword()));
+        }
 
         return parent::_afterLoad();
     }
@@ -174,6 +185,10 @@ class Import extends \Magento\Framework\Model\AbstractModel
 
         if ($this->getFtpPassword()) {
             $this->setFtpPassword($this->pandaHelper->getEncryptor()->encrypt($this->getFtpPassword()));
+        }
+
+        if ($this->getRemotePassword()) {
+            $this->setRemotePassword($this->pandaHelper->getEncryptor()->encrypt($this->getRemotePassword()));
         }
 
         if ($this->getCron() !== 'other') {
@@ -284,6 +299,70 @@ class Import extends \Magento\Framework\Model\AbstractModel
     }
 
     /**
+     * @param      $path
+     *
+     * @return string|string[]
+     */
+    public function getFileExtension($path)
+    {
+
+        return pathinfo($path, PATHINFO_EXTENSION);
+
+    }
+
+    /**
+     * @param $localFile
+     * @param $extension
+     *
+     * @return string
+     */
+    public function convertToCsv($localFile, $extension)
+    {
+
+        $dirWrite = $this->filesystem->getDirectoryWrite(DirectoryList::ROOT);
+        $dirRead = $this->filesystem->getDirectoryRead(DirectoryList::ROOT);
+        $fileInfo = pathinfo($localFile);
+
+        $finalFile = $fileInfo['dirname'] . '/' . $fileInfo['filename'] . '.csv';
+
+        $data = [];
+
+        if ($extension == 'json') {
+            $data = json_decode($dirWrite->readFile($localFile), true);
+        }
+
+        if ($extension == 'xml') {
+            $file = simplexml_load_file($localFile);
+            $file = json_decode(json_encode($file), true);
+            $data = reset($file);
+        }
+
+        if ($data) {
+
+            $fp = fopen($finalFile, 'w');
+
+            $fieldSeparator = $this->getFieldSeparator();
+            if (!$fieldSeparator) {
+                $fieldSeparator = ',';
+            }
+
+            fputcsv($fp, array_keys($data[0]), $fieldSeparator);
+
+            foreach ($data as $line) {
+                fputcsv($fp, $line, $fieldSeparator);
+            }
+
+            fclose($fp);
+
+            $dirWrite->delete($localFile);
+
+            return $finalFile;
+        }
+
+        return $localFile;
+    }
+
+    /**
      * @return false|string|null
      */
     public function getFullFilePathName()
@@ -291,19 +370,50 @@ class Import extends \Magento\Framework\Model\AbstractModel
 
         $localFile = null;
 
+        $dirWrite = $this->filesystem->getDirectoryWrite(DirectoryList::ROOT);
+        $dirRead = $this->filesystem->getDirectoryRead(DirectoryList::ROOT);
+
         if ($this->getServerType() == 'local') {
+
             $fileDir = $this->getFileDirectory();
             $fileName = $fileDir . $this->getFileName();
 
-            $exists = $this->filesystem->getDirectoryRead(DirectoryList::ROOT)
-                                       ->isFile($fileName);
+            $exists = $dirRead->isFile($fileName);
 
             if (!$exists) {
                 return false;
             }
 
-            $localFile = $this->filesystem->getDirectoryRead(DirectoryList::ROOT)
-                                          ->getAbsolutePath($fileName);
+            $fileExtension = $this->getFileExtension($fileName);
+
+            $localFile = $dirRead->getAbsolutePath($fileName);
+        }
+
+        if ($this->getServerType() == 'url') {
+
+            if ($this->getRemoteUsername()) {
+                $this->curl->setCredentials($this->getRemoteUsername(), $this->getRemotePassword());
+            }
+
+            $this->curl->get($this->getRemoteUrl());
+
+            if (!$this->curl->getBody()) {
+                return false;
+            }
+
+            $fileExtension = $this->getFileExtension($this->getRemoteUrl());
+            $tmpFileName = $dirRead->getAbsolutePath('var/importexport/' . $this->getEntityType() . '.' . $fileExtension);
+
+            $dirWrite->writeFile($tmpFileName, $this->curl->getBody());
+
+            if ($fileExtension != 'csv') {
+                $tmpFileName = $this->convertToCsv($tmpFileName, $fileExtension);
+            }
+
+            $localFile = $dirRead->getAbsolutePath($tmpFileName);
+
+            $this->setFileName($this->getEntityType() . '.csv');
+
         }
 
         if ($this->getServerType() == 'ftp') {
@@ -312,8 +422,8 @@ class Import extends \Magento\Framework\Model\AbstractModel
             $fileName = $fileDir . $this->getFileName();
             $archiveDir = $fileDir . 'archives/';
 
-            $localFile = $this->filesystem->getDirectoryWrite(DirectoryList::VAR_DIR)
-                                          ->getAbsolutePath('importexport/' . $this->getEntityType() . '.csv');
+            $localFile = $dirWrite->getAbsolutePath('var/importexport/' . $this->getEntityType() . '.' . $this->getFileExtension($fileName));
+            $dirWrite->writeFile($localFile, '');
 
             $mediaDir = $this->imagesDirProvider->getDirectory()->getAbsolutePath();
 
@@ -337,6 +447,12 @@ class Import extends \Magento\Framework\Model\AbstractModel
             $file = null;
             try {
                 $file = ftp_get($connId, $localFile, $fileName, $binary);
+                $extension = $this->getFileExtension($fileName);
+
+                if ($extension != 'csv') {
+                    $localFile = $this->convertToCsv($localFile, $extension);
+                }
+
             } catch (\Exception $e) {
                 return false;
             }
@@ -403,8 +519,7 @@ class Import extends \Magento\Framework\Model\AbstractModel
             $fileName = $fileDir . $this->getFileName();
             $archiveDir = $fileDir . 'archives/';
 
-            $localFile = $this->filesystem->getDirectoryWrite(DirectoryList::VAR_DIR)
-                                          ->getAbsolutePath('importexport/' . $this->getEntityType() . '.csv');
+            $localFile = $dirWrite->getAbsolutePath('var/importexport/' . $this->getEntityType() . '.' . $this->getFileExtension($fileName));
 
             $mediaDir = $this->imagesDirProvider->getDirectory()->getAbsolutePath();
 
@@ -422,6 +537,11 @@ class Import extends \Magento\Framework\Model\AbstractModel
 
             if (!$sftp->get($fileName, $localFile)) {
                 return false;
+            }
+
+            $extension = $this->getFileExtension($fileName);
+            if ($extension != 'csv') {
+                $localFile = $this->convertToCsv($localFile, $extension);
             }
 
             if ($this->getAfterImport() == 'archive') {
@@ -577,13 +697,17 @@ class Import extends \Magento\Framework\Model\AbstractModel
                 }
             }
 
-            if ($this->getServerType() == 'local') {
-                $localFile = $this->filesystem->getDirectoryRead(DirectoryList::ROOT)
-                                              ->getAbsolutePath($fileName);
-            } else {
-                $localFile = $this->filesystem->getDirectoryWrite(DirectoryList::VAR_DIR)
-                                              ->getAbsolutePath('importexport/' . $this->getEntityType() . '.csv');
-            }
+            $fileInfo = pathinfo($fullFileNamePath);
+
+            $localFile = $fileInfo['dirname'] . '/' . $fileInfo['filename'] . '.csv';
+
+            //            if ($this->getServerType() == 'local') {
+            //                $localFile = $this->filesystem->getDirectoryRead(DirectoryList::ROOT)
+            //                                              ->getAbsolutePath($fileName);
+            //            } else {
+            //                $localFile = $this->filesystem->getDirectoryWrite(DirectoryList::VAR_DIR)
+            //                                              ->getAbsolutePath('importexport/' . $this->getEntityType() . '.csv');
+            //            }
 
             if ($this->getAfterImport() == 'archive') {
 
@@ -597,7 +721,7 @@ class Import extends \Magento\Framework\Model\AbstractModel
 
                 $this->filesystem->getDirectoryWrite(DirectoryList::ROOT)
                                  ->renameFile($localFile,
-                                     $archiveDir . 'panda_' . date('Y-m-d_H-i') . '_' . $this->getFileName());
+                                     $archiveDir . 'panda_' . date('Y-m-d_H-i') . '_' . $fileInfo['filename'] . '.csv');
             }
 
             if ($this->getAfterImport() == 'delete') {
@@ -1266,6 +1390,86 @@ class Import extends \Magento\Framework\Model\AbstractModel
     {
 
         return $this->getData('next_execution');
+    }
+
+    /**
+     * @param $remoteUsername
+     *
+     * @return $this
+     */
+    public function setRemoteUsername($remoteUsername)
+    {
+
+        return $this->setData('remote_username', $remoteUsername);
+    }
+
+    /**
+     * @param $remotePassword
+     *
+     * @return $this
+     */
+    public function setRemotePassword($remotePassword)
+    {
+
+        return $this->setData('remote_password', $remotePassword);
+    }
+
+    /**
+     * @param $remoteUrl
+     *
+     * @return $this
+     */
+    public function setRemoteUrl($remoteUrl)
+    {
+
+        return $this->setData('remote_url', $remoteUrl);
+    }
+
+    /**
+     * @param $mappings
+     *
+     * @return $this
+     */
+    public function setMappings($mappings)
+    {
+
+        return $this->setData('mappings', $mappings);
+    }
+
+    /**
+     * @return mixed
+     */
+    public function getRemoteUsername()
+    {
+
+        return $this->getData('remote_username');
+    }
+
+    /**
+     * @return mixed
+     */
+    public function getRemotePassword()
+    {
+
+        return $this->getData('remote_password');
+    }
+
+    /**
+     * @return mixed
+     */
+    public function getRemoteUrl()
+    {
+
+        return $this->getData('remote_url');
+    }
+
+    /**
+     * @return mixed
+     */
+    public function getMappings()
+    {
+
+        return $this->getData('mappings');
     }
 
 }

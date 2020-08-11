@@ -58,6 +58,10 @@ class Save extends \Licentia\Import\Controller\Adminhtml\Import
                     $data['ftp_password'] == \Licentia\Panda\Model\Senders::OBSCURE_PASSWORD_REPLACEMENT) {
                     unset($data['ftp_password']);
                 }
+                if (isset($data['remote_password']) &&
+                    $data['remote_password'] == \Licentia\Panda\Model\Senders::OBSCURE_PASSWORD_REPLACEMENT) {
+                    unset($data['remote_password']);
+                }
 
                 $model->addData($data);
                 $model->save();

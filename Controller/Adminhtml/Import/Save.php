@@ -63,6 +63,11 @@ class Save extends \Licentia\Import\Controller\Adminhtml\Import
                     unset($data['remote_password']);
                 }
 
+                if (isset($data['remote_bearer']) &&
+                    $data['remote_bearer'] == \Licentia\Panda\Model\Senders::OBSCURE_PASSWORD_REPLACEMENT) {
+                    unset($data['remote_bearer']);
+                }
+
                 $model->addData($data);
                 $model->save();
 

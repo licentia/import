@@ -1,0 +1,40 @@
+<!--
+  ~ Copyright (C) Licentia, Unipessoal LDA
+  ~
+  ~ NOTICE OF LICENSE
+  ~
+  ~  This source file is subject to the EULA
+  ~  that is bundled with this package in the file LICENSE.txt.
+  ~  It is also available through the world-wide-web at this URL:
+  ~  https://www.greenflyingpanda.com/panda-license.txt
+  ~
+  ~  @title      Licentia Panda - Magento® Sales Automation Extension
+  ~  @package    Licentia
+  ~  @author     Bento Vilas Boas <bento@licentia.pt>
+  ~  @copyright  Copyright (c) Licentia - https://licentia.pt
+  ~  @license    https://www.greenflyingpanda.com/panda-license.txt
+  ~
+  -->
+
+<!--@subject {{trans 'Success - Schedule Import: %name' name="$name"}} @-->
+<!--@vars {
+"var name":"Name",
+"var created":"Records Created"
+"var updated":"Records Updated"
+"var delete":"Records Deleted"
+} @-->
+
+<table>
+    <tr class="email-intro">
+        <td>
+            <p class="greeting"></p>
+            <p>{{trans 'He there,'}}</p>
+            <p>{{trans 'Here are the results of your schedule import'}}.</p>
+            <p>{{trans 'Records Created'}}: {{var created}}.</p>
+            <p>{{trans 'Records Updated'}}: {{var updated}}.</p>
+            <p>{{trans 'Records Deleted'}}: {{var deleted}}.</p>
+            <p>{{trans 'Best Regards'}}.</p>
+        </td>
+    </tr>
+</table>
+

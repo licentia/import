@@ -271,10 +271,10 @@ class Information extends \Magento\Backend\Block\Widget\Form\Generic
             'after_import',
             'select',
             [
-                'name'     => 'after_import',
-                'title'    => __('After Import Action'),
-                'label'    => __('After Import Action'),
-                "options"  => [
+                'name'    => 'after_import',
+                'title'   => __('After Import Action'),
+                'label'   => __('After Import Action'),
+                "options" => [
                     'archive' => __('Archive Files'),
                     'delete'  => __('Delete Files'),
                 ],
@@ -350,6 +350,7 @@ class Information extends \Magento\Backend\Block\Widget\Form\Generic
                             $("div.admin__field.field.field-remote_url").hide();
                             $("div.admin__field.field.field-remote_username").hide();
                             $("div.admin__field.field.field-remote_password").hide();
+                            $("div.admin__field.field.field-remote_bearer").hide();
                             
                             $("#ftp_host").addClass("required-entry");
                             $("#ftp_username").addClass("required-entry");
@@ -369,6 +370,7 @@ class Information extends \Magento\Backend\Block\Widget\Form\Generic
                             $("div.admin__field.field.field-remote_url").hide();
                             $("div.admin__field.field.field-remote_username").hide();
                             $("div.admin__field.field.field-remote_password").hide();
+                            $("div.admin__field.field.field-remote_bearer").hide();
                             
                             $("#remote_url").removeClass("required-entry");
                             $("#ftp_host").addClass("required-entry");
@@ -388,6 +390,7 @@ class Information extends \Magento\Backend\Block\Widget\Form\Generic
                             $("div.admin__field.field.field-remote_url").show();
                             $("div.admin__field.field.field-remote_username").show();
                             $("div.admin__field.field.field-remote_password").show();
+                            $("div.admin__field.field.field-remote_bearer").show();
                             
                             $("#remote_url").addClass("required-entry");
                             $("#ftp_host").removeClass("required-entry");
@@ -412,6 +415,7 @@ class Information extends \Magento\Backend\Block\Widget\Form\Generic
                             $("div.admin__field.field.field-remote_url").hide();
                             $("div.admin__field.field.field-remote_username").hide();
                             $("div.admin__field.field.field-remote_password").hide();
+                            $("div.admin__field.field.field-remote_bearer").hide();
                         }
                     }
                 }
@@ -551,6 +555,17 @@ class Information extends \Magento\Backend\Block\Widget\Form\Generic
         );
 
         $fieldset2->addField(
+            'remote_bearer',
+            'password',
+            [
+                'name'  => 'remote_bearer',
+                'label' => __('Auth Bearer'),
+                'title' => __('Auth Bearer'),
+                'class' => 'input-text',
+            ]
+        );
+
+        $fieldset2->addField(
             'ftp_password',
             'password',
             [
@@ -593,7 +608,7 @@ class Information extends \Magento\Backend\Block\Widget\Form\Generic
             ]
         );
 
-        $fieldset3 = $form->addFieldset('file_email', ['legend' => __('Email Notifications')]);
+        $fieldset3 = $form->addFieldset('file_email', ['legend' => __('Failure Email Notifications')]);
 
         $fieldset3->addField(
             'failed_email_sender',
@@ -622,6 +637,39 @@ class Information extends \Magento\Backend\Block\Widget\Form\Generic
                 "label"   => __('Send Copy Email Method'),
                 "options" => ['copy' => __('Copy'), 'bcc' => __('BCC')],
                 "name"    => 'failed_email_copy_method',
+                'note'    => __('If multiple Recipients defined'),
+            ]
+        );
+
+        $fieldset3 = $form->addFieldset('file_email_success', ['legend' => __('Success Email Notifications')]);
+
+        $fieldset3->addField(
+            'success_email_sender',
+            "select",
+            [
+                "label"  => __('Success Email Sender'),
+                "values" => $this->emailIdentity->toOptionArray(),
+                "name"   => 'success_email_sender',
+            ]
+        );
+
+        $fieldset3->addField(
+            'success_email_recipient',
+            "text",
+            [
+                "label" => __('Success Email Recipient'),
+                "name"  => 'success_email_recipient',
+                "note"  => __('Separate multiple using commas'),
+            ]
+        );
+
+        $fieldset3->addField(
+            'success_email_copy_method',
+            "select",
+            [
+                "label"   => __('Send Copy Email Method'),
+                "options" => ['copy' => __('Copy'), 'bcc' => __('BCC')],
+                "name"    => 'success_email_copy_method',
                 'note'    => __('If multiple Recipients defined'),
             ]
         );

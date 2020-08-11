@@ -35,6 +35,8 @@ use \Magento\ImportExport\Model\Import\ImageDirectoryBaseProvider;
 class Import extends \Magento\Framework\Model\AbstractModel
 {
 
+    const LOCAL_IMPORT_PATH = 'var/importexport/';
+
     /**
      *
      */
@@ -173,6 +175,9 @@ class Import extends \Magento\Framework\Model\AbstractModel
         if ($this->getRemotePassword()) {
             $this->setRemotePassword($this->pandaHelper->getEncryptor()->decrypt($this->getRemotePassword()));
         }
+        if ($this->getRemoteBearer()) {
+            $this->setRemoteBearer($this->pandaHelper->getEncryptor()->decrypt($this->getRemoteBearer()));
+        }
 
         return parent::_afterLoad();
     }
@@ -189,6 +194,10 @@ class Import extends \Magento\Framework\Model\AbstractModel
 
         if ($this->getRemotePassword()) {
             $this->setRemotePassword($this->pandaHelper->getEncryptor()->encrypt($this->getRemotePassword()));
+        }
+
+        if ($this->getRemoteBearer()) {
+            $this->setRemoteBearer($this->pandaHelper->getEncryptor()->encrypt($this->getRemoteBearer()));
         }
 
         if ($this->getCron() !== 'other') {
@@ -269,28 +278,83 @@ class Import extends \Magento\Framework\Model\AbstractModel
             }
 
             foreach ($recipients as $email) {
-                $transport = $this->transportBuilder->setTemplateIdentifier('panda_import_failure_template')
-                                                    ->setTemplateOptions(
-                                                        [
-                                                            'area'  => \Magento\Backend\App\Area\FrontNameResolver::AREA_CODE,
-                                                            'store' => \Magento\Store\Model\Store::DEFAULT_STORE_ID,
-                                                        ]
-                                                    )
-                                                    ->setTemplateVars([
-                                                        'message' => $message,
-                                                        'name'    => $this->getName(),
-                                                    ])
-                                                    ->setFromByScope($this->getFailedEmailSender())
-                                                    ->addTo($email)
-                                                    ->getTransport();
+                $t = $this->transportBuilder->setTemplateIdentifier('panda_import_failure_template')
+                                            ->setTemplateOptions(
+                                                [
+                                                    'area'  => \Magento\Backend\App\Area\FrontNameResolver::AREA_CODE,
+                                                    'store' => \Magento\Store\Model\Store::DEFAULT_STORE_ID,
+                                                ]
+                                            )
+                                            ->setTemplateVars([
+                                                'message' => $message,
+                                                'name'    => $this->getName(),
+                                            ])
+                                            ->setFromByScope($this->getFailedEmailSender())
+                                            ->addTo($email)
+                                            ->getTransport();
 
                 if ($this->getFailedEmailCopyMethod() == 'bcc') {
                     foreach ($emails as $copy) {
-                        $transport->getMessage()->addBcc($copy);
+                        $t->getMessage()->addBcc($copy);
                     }
                 }
 
-                $transport->sendMessage();
+                $t->sendMessage();
+            }
+
+        } catch (\Exception $e) {
+            $this->pandaHelper->logException($e);
+        }
+    }
+
+    /**
+     */
+    public function sendSuccessEmail()
+    {
+
+        try {
+            $emails = explode(',', $this->getSuccessEmailRecipient());
+            foreach ($emails as $key => $value) {
+                if (filter_var($value, FILTER_VALIDATE_EMAIL) === false) {
+                    unset($emails[$key]);
+                }
+            }
+            if ($emails) {
+                $emails = array_unique($emails);
+                $emails = array_values($emails);
+            }
+
+            $recipients = $emails;
+            if ($this->getSuccessEmailCopyMethod() == 'bcc') {
+                $recipients = [$emails[0]];
+                unset($emails[0]);
+            }
+
+            foreach ($recipients as $email) {
+                $t = $this->transportBuilder->setTemplateIdentifier('panda_import_success_template')
+                                            ->setTemplateOptions(
+                                                [
+                                                    'area'  => \Magento\Backend\App\Area\FrontNameResolver::AREA_CODE,
+                                                    'store' => \Magento\Store\Model\Store::DEFAULT_STORE_ID,
+                                                ]
+                                            )
+                                            ->setTemplateVars([
+                                                'created' => $this->importModel->getCreatedItemsCount(),
+                                                'updated' => $this->importModel->getUpdatedItemsCount(),
+                                                'deleted' => $this->importModel->getDeletedItemsCount(),
+                                                'name'    => $this->getName(),
+                                            ])
+                                            ->setFromByScope($this->getSuccessEmailSender())
+                                            ->addTo($email)
+                                            ->getTransport();
+
+                if ($this->getSuccessEmailCopyMethod() == 'bcc') {
+                    foreach ($emails as $copy) {
+                        $t->getMessage()->addBcc($copy);
+                    }
+                }
+
+                $t->sendMessage();
             }
 
         } catch (\Exception $e) {
@@ -395,6 +459,10 @@ class Import extends \Magento\Framework\Model\AbstractModel
                 $this->curl->setCredentials($this->getRemoteUsername(), $this->getRemotePassword());
             }
 
+            if ($this->getRemoteBearer()) {
+                $this->curl->addHeader('Authorization: Bearer', $this->getRemoteBearer());
+            }
+
             $this->curl->get($this->getRemoteUrl());
 
             if (!$this->curl->getBody()) {
@@ -402,7 +470,8 @@ class Import extends \Magento\Framework\Model\AbstractModel
             }
 
             $fileExtension = $this->getFileExtension($this->getRemoteUrl());
-            $tmpFileName = $dirRead->getAbsolutePath('var/importexport/' . $this->getEntityType() . '.' . $fileExtension);
+            $tmpFileName = $dirRead->getAbsolutePath(self::LOCAL_IMPORT_PATH . $this->getEntityType() . '.' .
+                                                     $fileExtension);
 
             $dirWrite->writeFile($tmpFileName, $this->curl->getBody());
 
@@ -422,7 +491,8 @@ class Import extends \Magento\Framework\Model\AbstractModel
             $fileName = $fileDir . $this->getFileName();
             $archiveDir = $fileDir . 'archives/';
 
-            $localFile = $dirWrite->getAbsolutePath('var/importexport/' . $this->getEntityType() . '.' . $this->getFileExtension($fileName));
+            $localFile = $dirWrite->getAbsolutePath(self::LOCAL_IMPORT_PATH . $this->getEntityType() . '.' .
+                                                    $this->getFileExtension($fileName));
             $dirWrite->writeFile($localFile, '');
 
             $mediaDir = $this->imagesDirProvider->getDirectory()->getAbsolutePath();
@@ -519,7 +589,8 @@ class Import extends \Magento\Framework\Model\AbstractModel
             $fileName = $fileDir . $this->getFileName();
             $archiveDir = $fileDir . 'archives/';
 
-            $localFile = $dirWrite->getAbsolutePath('var/importexport/' . $this->getEntityType() . '.' . $this->getFileExtension($fileName));
+            $localFile = $dirWrite->getAbsolutePath(self::LOCAL_IMPORT_PATH . $this->getEntityType() . '.' .
+                                                    $this->getFileExtension($fileName));
 
             $mediaDir = $this->imagesDirProvider->getDirectory()->getAbsolutePath();
 
@@ -599,6 +670,7 @@ class Import extends \Magento\Framework\Model\AbstractModel
     {
 
         $result = 'success';
+        $message = '';
         $fullFileNamePath = null;
         try {
 
@@ -635,13 +707,19 @@ class Import extends \Magento\Framework\Model\AbstractModel
                 $result = 'success_no_file';
             }
 
-        } catch (\Exception $e) {
+            if ($this->importModel->getErrorAggregator()->getErrorsCount()) {
 
-            $message = implode("<br><br>", $this->importModel->getErrorAggregator()->getAllErrors());
+                $message = [];
+                foreach ($this->importModel->getErrorAggregator()->getAllErrors() as $error) {
+                    $message[] = $error->getErrorMessage() . ' - Row: ' . $error->getRowNumber();
+                }
 
-            if (!$message) {
-                $message = $e->getMessage();
+                $result = 'fail';
+                $this->sendErrorEmail(implode("<br><br>", $message));
             }
+
+        } catch (\Exception $e) {
+            $message = $e->getMessage();
             $result = 'fail';
             $this->sendErrorEmail($message);
         }
@@ -654,6 +732,7 @@ class Import extends \Magento\Framework\Model\AbstractModel
 
         $this->setLastExecuted($this->pandaHelper->gmtDateTime());
         $this->setLastExecutionStatus($result);
+        $this->setFailMessage($message);
         $this->save();
 
         if ($result == 'success') {
@@ -664,7 +743,7 @@ class Import extends \Magento\Framework\Model\AbstractModel
                                                     ->getAbsolutePath($this->getImportImagesFileDir());
             } else {
                 $fileDir = $localFile = $this->filesystem->getDirectoryWrite(DirectoryList::VAR_DIR)
-                                                         ->getAbsolutePath('importexport/');
+                                                         ->getAbsolutePath(self::LOCAL_IMPORT_PATH);
                 $mediaDir = $this->imagesDirProvider->getDirectory()
                                                     ->getAbsolutePath();
             }
@@ -688,7 +767,8 @@ class Import extends \Magento\Framework\Model\AbstractModel
 
                         $this->filesystem->getDirectoryWrite(DirectoryList::ROOT)
                                          ->renameFile($file->getRealPath(),
-                                             $archiveMediaDir . 'panda_' . date('Y-m-d_H-i') . '_' . $file->getFileName());
+                                             $archiveMediaDir . 'panda_' . date('Y-m-d_H-i') . '_' .
+                                             $file->getFileName());
                     }
                     if ($this->getAfterImport() == 'delete') {
                         $this->filesystem->getDirectoryWrite(DirectoryList::ROOT)
@@ -700,14 +780,6 @@ class Import extends \Magento\Framework\Model\AbstractModel
             $fileInfo = pathinfo($fullFileNamePath);
 
             $localFile = $fileInfo['dirname'] . '/' . $fileInfo['filename'] . '.csv';
-
-            //            if ($this->getServerType() == 'local') {
-            //                $localFile = $this->filesystem->getDirectoryRead(DirectoryList::ROOT)
-            //                                              ->getAbsolutePath($fileName);
-            //            } else {
-            //                $localFile = $this->filesystem->getDirectoryWrite(DirectoryList::VAR_DIR)
-            //                                              ->getAbsolutePath('importexport/' . $this->getEntityType() . '.csv');
-            //            }
 
             if ($this->getAfterImport() == 'archive') {
 
@@ -729,8 +801,11 @@ class Import extends \Magento\Framework\Model\AbstractModel
                                  ->delete($localFile);
             }
 
+            $this->sendSuccessEmail();
+
         }
 
+        return $result;
     }
 
     /**
@@ -1470,6 +1545,106 @@ class Import extends \Magento\Framework\Model\AbstractModel
     {
 
         return $this->getData('mappings');
+    }
+
+    /**
+     * @param $bearer
+     *
+     * @return $this
+     */
+    public function setRemoteBearer($bearer)
+    {
+
+        return $this->setData('remote_bearer', $bearer);
+    }
+
+    /**
+     * @return mixed
+     */
+    public function getRemoteBearer()
+    {
+
+        return $this->getData('remote_bearer');
+    }
+
+    /**
+     * @param $successEmailCopyMethod
+     *
+     * @return $this
+     */
+    public function setSuccessEmailCopyMethod($successEmailCopyMethod)
+    {
+
+        return $this->setData('success_email_copy_method', $successEmailCopyMethod);
+    }
+
+    /**
+     * @param $successEmailRecipient
+     *
+     * @return $this
+     */
+    public function setSuccessEmailRecipient($successEmailRecipient)
+    {
+
+        return $this->setData('success_email_recipient', $successEmailRecipient);
+    }
+
+    /**
+     * @param $successEmailSender
+     *
+     * @return $this
+     */
+    public function setSuccessEmailSender($successEmailSender)
+    {
+
+        return $this->setData('success_email_sender', $successEmailSender);
+    }
+
+    /**
+     * @return mixed
+     */
+    public function getSuccessEmailCopyMethod()
+    {
+
+        return $this->getData('success_email_copy_method');
+    }
+
+    /**
+     * @return mixed
+     */
+    public function getSuccessEmailRecipient()
+    {
+
+        return $this->getData('success_email_recipient');
+    }
+
+    /**
+     * @return mixed
+     */
+    public function getSuccessEmailSender()
+    {
+
+        return $this->getData('success_email_sender');
+    }
+
+    /**
+     * @param $failMessage
+     *
+     * @return $this
+     */
+    public function setFailMessage($failMessage)
+    {
+
+        return $this->setData('fail_message', $failMessage);
+    }
+
+    /**
+     * @return mixed
+     */
+    public function getFailMessage()
+    {
+
+        return $this->getData('fail_message');
     }
 
 }

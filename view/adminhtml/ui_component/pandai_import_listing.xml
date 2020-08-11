@@ -188,5 +188,13 @@
                 </item>
             </argument>
         </actionsColumn>
+        <column name="fail_message">
+            <argument name="data" xsi:type="array">
+                <item name="config" xsi:type="array">
+                    <item name="filter" xsi:type="string">text</item>
+                    <item name="label" xsi:type="string" translate="true">Fail Message</item>
+                </item>
+            </argument>
+        </column>
     </columns>
 </listing>

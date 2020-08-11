@@ -52,13 +52,13 @@ class Run extends \Licentia\Import\Controller\Adminhtml\Import
             } catch (\Exception $e) {
                 $this->messageManager->addExceptionMessage(
                     $e,
-                    __('Something went wrong while deleting the Scheduled Import')
+                    __('Something went wrong while running the Scheduled Import')
                 );
             }
 
             return $resultRedirect->setPath('*/*/');
         }
-        $this->messageManager->addErrorMessage(__('We can\'t find an Scheduled Import to delete.'));
+        $this->messageManager->addErrorMessage(__('We can\'t find an Scheduled Import to run.'));
 
         return $resultRedirect->setPath('*/*/');
     }

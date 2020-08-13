@@ -1,0 +1,79 @@
+<?php
+/*
+ * Copyright (C) Licentia, Unipessoal LDA
+ *
+ * NOTICE OF LICENSE
+ *
+ *  This source file is subject to the EULA
+ *  that is bundled with this package in the file LICENSE.txt.
+ *  It is also available through the world-wide-web at this URL:
+ *  https://www.greenflyingpanda.com/panda-license.txt
+ *
+ *  @title      Licentia Panda - Magento® Sales Automation Extension
+ *  @package    Licentia
+ *  @author     Bento Vilas Boas <bento@licentia.pt>
+ *  @copyright  Copyright (c) Licentia - https://licentia.pt
+ *  @license    https://www.greenflyingpanda.com/panda-license.txt
+ *
+ */
+
+/** @var \Licentia\Import\Block\Adminhtml\Import\Edit\Tab\Mapping $block */
+
+$mappings = json_decode($block->getImport()->getMappings(), true);
+
+?>
+<script type="text/javascript">
+    require(["jquery", 'domReady!'], function ($) {
+        $('.tr_clone_add').click(function () {
+            var $tableBody = $('#table-data').find("tbody"),
+                $trLast = $tableBody.find("tr:last"),
+                $trNew = $trLast.clone();
+            $trLast.after($trNew);
+            $trNew.removeClass('hidden');
+        });
+        $(document).on('click', '.btn-remove', function () {
+            $(this).parent().parent('tr').remove();
+        });
+    });
+</script>
+<div style="text-align: right; margin-bottom: 20px;">
+    <button type="button" name="add" class="tr_clone_add btn-default"><?= __('Add Row') ?></button>
+</div>
+<table class="data-grid " id="table-data">
+    <thead>
+    <tr>
+        <th class="data-grid-th"><?= __('Import File Attribute Name') ?></th>
+        <th class="data-grid-th"><?= __('Magento Attribute Name') ?></th>
+        <th class="data-grid-th"><?= __('Default Value') ?></th>
+        <th class="data-grid-th"><?= __('Remove') ?></th>
+    </tr>
+    </thead>
+    <tbody>
+    <?php if (isset($mappings['magento']) && is_array($mappings['magento'])): ?>
+        <?php for ($i = 0; $i < count($mappings['magento']); $i++): ?>
+            <tr>
+                <td><input type="text" value="<?= $block->escapeHtmlAttr($mappings['remote'][$i]) ?>"
+                           name="mappings[magento][]" class="small_input"></td>
+                <td><input type="text" value="<?= $block->escapeHtmlAttr($mappings['magento'][$i]) ?>"
+                           name="mappings[remote][]" class="small_input"></td>
+                <td><input type="text" value="<?= $block->escapeHtmlAttr($mappings['default'][$i]) ?>"
+                           name="mappings[default][]" class="small_input"></td>
+                <td>
+                    <button type="button" name="del" value="X" class="btn-remove">X</button>
+                </td>
+            </tr>
+        <?php endfor; ?>
+    <?php endif; ?>
+    <tr class="hidden">
+        <td><input type="text" name="mappings[magento][]" class="small_input"></td>
+        <td><input type="text" name="mappings[remote][]" class="small_input"></td>
+        <td><input type="text" name="mappings[default][]" class="small_input"></td>
+        <td>
+            <button type="button" name="del" value="X" class="btn-remove">X</button>
+        </td>
+    </tr>
+    </tbody>
+</table>
+<div style=" margin: 20px 0;">
+    Very Important
+</div>

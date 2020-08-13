@@ -18,5 +18,6 @@
 
 <config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Email:etc/email_templates.xsd">
     <template id="panda_import_failure_template" label="Failed Run Email Template" file="failure_template.html" type="html" module="Licentia_Import" area="adminhtml"/>
+    <template id="panda_import_no_file_template" label="Success - No File Email Template" file="success_no_file_template.html" type="html" module="Licentia_Import" area="adminhtml"/>
     <template id="panda_import_success_template" label="Success Run Email Template" file="success_template.html" type="html" module="Licentia_Import" area="adminhtml"/>
 </config>

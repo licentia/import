@@ -308,8 +308,9 @@ class Import extends \Magento\Framework\Model\AbstractModel
     }
 
     /**
+     * @param $result
      */
-    public function sendSuccessEmail()
+    public function sendSuccessEmail($result)
     {
 
         try {
@@ -330,20 +331,30 @@ class Import extends \Magento\Framework\Model\AbstractModel
                 unset($emails[0]);
             }
 
+            if ($result == 'success') {
+                $template = 'panda_import_success_template';
+                $vars = [
+                    'created' => $this->importModel->getCreatedItemsCount(),
+                    'updated' => $this->importModel->getUpdatedItemsCount(),
+                    'deleted' => $this->importModel->getDeletedItemsCount(),
+                    'name'    => $this->getName(),
+                ];
+            } else {
+                $template = 'panda_import_no_file_template';
+                $vars = [
+                    'name' => $this->getName(),
+                ];
+            }
+
             foreach ($recipients as $email) {
-                $t = $this->transportBuilder->setTemplateIdentifier('panda_import_success_template')
+                $t = $this->transportBuilder->setTemplateIdentifier($template)
                                             ->setTemplateOptions(
                                                 [
                                                     'area'  => \Magento\Backend\App\Area\FrontNameResolver::AREA_CODE,
                                                     'store' => \Magento\Store\Model\Store::DEFAULT_STORE_ID,
                                                 ]
                                             )
-                                            ->setTemplateVars([
-                                                'created' => $this->importModel->getCreatedItemsCount(),
-                                                'updated' => $this->importModel->getUpdatedItemsCount(),
-                                                'deleted' => $this->importModel->getDeletedItemsCount(),
-                                                'name'    => $this->getName(),
-                                            ])
+                                            ->setTemplateVars($vars)
                                             ->setFromByScope($this->getSuccessEmailSender())
                                             ->addTo($email)
                                             ->getTransport();
@@ -390,6 +401,38 @@ class Import extends \Magento\Framework\Model\AbstractModel
         $finalFile = $fileInfo['dirname'] . '/' . $fileInfo['filename'] . '.csv';
 
         $data = [];
+
+        if ($extension == 'zip') {
+            $zip = new \ZipArchive;
+            $res = $zip->open('file.zip');
+            if ($res === true) {
+                $dirName = $fileInfo['dirname'] . '/tmpZip_panda_' . rand(0, 1000);
+                if (!$dirWrite->isDirectory()) {
+                    $dirWrite->create($dirName);
+                }
+                $zip->extractTo($dirName);
+                $zip->close();
+
+                $files = array_diff(scandir($dirName), ['.', '..']);
+
+                foreach ($files as $file) {
+                    $ext = pathinfo($file, PATHINFO_EXTENSION);
+                    if (in_array($ext, ['csv', 'xml', 'json'])) {
+                        $localFile = $dirRead->getAbsolutePath($dirName . '');
+                    }
+                }
+
+                $dirWrite->delete($dirName);
+
+                if ($localFile) {
+                    return $this->convertToCsv($localFile, $ext);
+                }
+
+                return false;
+            } else {
+                return false;
+            }
+        }
 
         if ($extension == 'json') {
             $data = json_decode($dirWrite->readFile($localFile), true);
@@ -801,7 +844,10 @@ class Import extends \Magento\Framework\Model\AbstractModel
                                  ->delete($localFile);
             }
 
-            $this->sendSuccessEmail();
+        }
+
+        if ($result == 'success_no_file' || $result == 'success') {
+            $this->sendSuccessEmail($result);
 
         }
 

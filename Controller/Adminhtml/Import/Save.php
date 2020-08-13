@@ -46,6 +46,20 @@ class Save extends \Licentia\Import\Controller\Adminhtml\Import
             /** @var \Licentia\Import\Model\Import $model */
             $model = $this->registry->registry('panda_import');
 
+            $finalMappings = [];
+            if (isset($data['mappings']['magento'])) {
+                for ($i = 0; $i < count($data['mappings']['magento']); $i++) {
+
+                    if (!empty($data['mappings']['magento'][$i]) || !empty($data['mappings']['remote'][$i])) {
+                        $finalMappings['magento'][] = $data['mappings']['magento'][$i];
+                        $finalMappings['remote'][] = $data['mappings']['remote'][$i];
+                        $finalMappings['default'][] = $data['mappings']['default'][$i];
+                    }
+                }
+            }
+
+            $data['mappings'] = json_encode($finalMappings);
+
             if (!$model->getId() && $id) {
                 $this->messageManager->addErrorMessage(__('This Scheduled Import no longer exists.'));
 

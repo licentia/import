@@ -38,8 +38,7 @@ class Tabs extends \Magento\Backend\Block\Widget\Tabs
     }
 
     /**
-     * @return $this
-     * @throws \Exception
+     * @return \Magento\Backend\Block\Widget\Tabs|\Magento\Framework\View\Element\AbstractBlock
      */
     protected function _beforeToHtml()
     {
@@ -54,6 +53,21 @@ class Tabs extends \Magento\Backend\Block\Widget\Tabs
                                   ->toHtml(),
             ]
         );
+
+        $this->addTab(
+            'mapping_section',
+            [
+                'label'   => __('Data Mapping'),
+                'title'   => __('Data Mapping'),
+                'content' => $this->getLayout()
+                                  ->createBlock('Licentia\Import\Block\Adminhtml\Import\Edit\Tab\Mapping')
+                                  ->toHtml(),
+            ]
+        );
+
+        if ($this->getRequest()->getParam('tab_id')) {
+            $this->setActiveTab($this->getRequest()->getParam('tab_id'));
+        }
 
         return parent::_beforeToHtml();
     }

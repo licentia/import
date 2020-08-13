@@ -232,6 +232,15 @@ class Import extends \Magento\Framework\Model\AbstractModel
             throw new \Magento\Framework\Exception\LocalizedException(__('Invalid Cron expression'));
         }
 
+        if ($this->getFileName()) {
+            $extension = $this->getFileExtension($this->getFileName());
+
+            if (!in_array($extension, ['csv', 'xml', 'zip', 'json'])) {
+                throw new \Magento\Framework\Exception\LocalizedException(__('Invalid File Extension'));
+            }
+
+        }
+
         return parent::validateBeforeSave();
     }
 

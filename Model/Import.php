@@ -232,7 +232,7 @@ class Import extends \Magento\Framework\Model\AbstractModel
             throw new \Magento\Framework\Exception\LocalizedException(__('Invalid Cron expression'));
         }
 
-        if ($this->getFileName()) {
+        if ($this->getFileName() && $this->getServerType() != 'url') {
             $extension = $this->getFileExtension($this->getFileName());
 
             if (!in_array($extension, ['csv', 'xml', 'zip', 'json'])) {

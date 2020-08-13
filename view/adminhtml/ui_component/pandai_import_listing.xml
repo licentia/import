@@ -140,6 +140,35 @@
                 </item>
             </argument>
         </column>
+        <column name="server_type">
+            <argument name="data" xsi:type="array">
+                <item name="options" xsi:type="array">
+                    <item name="local" xsi:type="array">
+                        <item name="value" xsi:type="string">local</item>
+                        <item name="label" xsi:type="string" translate="true">Local</item>
+                    </item>
+                    <item name="ftp" xsi:type="array">
+                        <item name="value" xsi:type="string">ftp</item>
+                        <item name="label" xsi:type="string" translate="true">FTP</item>
+                    </item>
+                    <item name="ssh" xsi:type="array">
+                        <item name="value" xsi:type="string">ssh</item>
+                        <item name="label" xsi:type="string" translate="true">SFTP</item>
+                    </item>
+                    <item name="url" xsi:type="array">
+                        <item name="value" xsi:type="string">url</item>
+                        <item name="label" xsi:type="string" translate="true">URL</item>
+                    </item>
+                </item>
+                <item name="config" xsi:type="array">
+                    <item name="filter" xsi:type="string">select</item>
+                    <item name="component" xsi:type="string">Magento_Ui/js/grid/columns/select</item>
+                    <item name="label" xsi:type="string" translate="true">Server Type</item>
+                    <item name="dataType" xsi:type="string">select</item>
+                    <item name="fieldClass" xsi:type="string">column_200</item>
+                </item>
+            </argument>
+        </column>
         <column name="cron_expression" class="Licentia\Import\Ui\Component\Listing\Column\Cron">
             <argument name="data" xsi:type="array">
                 <item name="config" xsi:type="array">

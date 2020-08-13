@@ -35,6 +35,9 @@ use \Magento\ImportExport\Model\Import\ImageDirectoryBaseProvider;
 class Import extends \Magento\Framework\Model\AbstractModel
 {
 
+    /**
+     *
+     */
     const LOCAL_IMPORT_PATH = 'var/importexport/';
 
     /**
@@ -706,6 +709,116 @@ class Import extends \Magento\Framework\Model\AbstractModel
         return $localFile;
     }
 
+    public function getMappingsArray()
+    {
+
+        $mappings = json_decode($this->getMappings(), true);
+        $finalMappings = [];
+        if (isset($mappings['magento'])) {
+            for ($i = 0; $i < count($mappings['magento']); $i++) {
+                if ((!empty($mappings['magento'][$i]) && !empty($mappings['remote'][$i])) ||
+                    !empty($mappings['magento'][$i]) && !empty($mappings['default'][$i])) {
+                    $finalMappings[] = [
+                        'magento' => $mappings['magento'][$i],
+                        'remote'  => $mappings['remote'][$i],
+                        'default' => $mappings['default'][$i],
+                    ];
+                }
+            }
+        }
+
+        return $finalMappings;
+    }
+
+    public function applyDataMappings($file)
+    {
+
+        $mappings = $this->getMappingsArray();
+
+        if (!$mappings) {
+            return;
+        }
+
+        $fieldSeparator = $this->getFieldSeparator();
+        if (!$fieldSeparator) {
+            $fieldSeparator = ',';
+        }
+
+        $fieldEnclosure = $this->getFieldsEnclosure();
+        if (!$fieldEnclosure) {
+            $fieldEnclosure = '"';
+        }
+
+        $row = 1;
+        $resultData = [];
+        if (($handle = fopen($file, "r")) !== false) {
+            while (($data = fgetcsv($handle, 0, $fieldSeparator)) !== false) {
+
+                if ($row == 1) {
+                    foreach ($mappings as $mapping) {
+
+                        if (!empty($mapping['magento']) &&
+                            !empty($mapping['remote']) &&
+                            array_search($mapping['remote'], $data) !== false) {
+                            $data[array_search($mapping['remote'], $data)] = $mapping['magento'];
+                        }
+
+                        if (!empty($mapping['magento']) &&
+                            empty($mapping['remote']) &&
+                            !empty($mapping['default'])) {
+                            $data[] = $mapping['magento'];
+                        }
+
+                    }
+
+                    $map = $data;
+                    $row++;
+                    continue;
+                }
+
+                foreach ($mappings as $mapping) {
+
+                    if (!empty($mapping['magento']) &&
+                        empty($mapping['remote']) &&
+                        !empty($mapping['default']) &&
+                        array_search($mapping['remote'], $data) !== false) {
+                        $data[array_search($mapping['remote'], $data)] = $mapping['default'];
+                    }
+
+                    if (!empty($mapping['magento']) &&
+                        !empty($mapping['remote']) &&
+                        array_search($mapping['remote'], $data) !== false) {
+                        $data[array_search($mapping['remote'], $data)] = $mapping['magento'];
+                    }
+
+                    if (!empty($mapping['magento']) &&
+                        empty($mapping['remote']) &&
+                        !empty($mapping['default'])) {
+                        $data[] = $mapping['default'];
+                    }
+
+                }
+
+                $resultData[] = array_combine($map, $data);
+
+            }
+        }
+
+        if ($resultData) {
+
+            $fp = fopen($file, 'w');
+            fputcsv($fp, array_keys($resultData[0]), $fieldSeparator, $fieldEnclosure);
+
+            foreach ($resultData as $fields) {
+                fputcsv($fp, $fields, $fieldSeparator, $fieldEnclosure);
+            }
+
+            fclose($fp);
+        }
+
+        return $file;
+    }
+
     /**
      *
      */
@@ -718,6 +831,8 @@ class Import extends \Magento\Framework\Model\AbstractModel
         try {
 
             $fullFileNamePath = $this->getFullFilePathName();
+
+            $this->applyDataMappings($fullFileNamePath);
 
             if ($fullFileNamePath) {
                 $data = $this->getData();
@@ -758,7 +873,8 @@ class Import extends \Magento\Framework\Model\AbstractModel
                 }
 
                 $result = 'fail';
-                $this->sendErrorEmail(implode("<br><br>", $message));
+                $message = implode("<br><br>", $message);
+                $this->sendErrorEmail($message);
             }
 
         } catch (\Exception $e) {
@@ -1202,7 +1318,12 @@ class Import extends \Magento\Framework\Model\AbstractModel
     public function getFieldSeparator()
     {
 
-        return $this->getData('field_separator');
+        $fieldSeparator = $this->getData('field_separator');
+        if (!$fieldSeparator) {
+            $fieldSeparator = ',';
+        }
+
+        return $fieldSeparator;
     }
 
     /**
@@ -1211,7 +1332,12 @@ class Import extends \Magento\Framework\Model\AbstractModel
     public function getFieldsEnclosure()
     {
 
-        return $this->getData('fields_enclosure');
+        $fieldEnclosure = $this->getData('fields_enclosure');
+        if (!$fieldEnclosure) {
+            $fieldEnclosure = '"';
+        }
+
+        return $fieldEnclosure;
     }
 
     /**

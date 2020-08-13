@@ -50,7 +50,8 @@ class Save extends \Licentia\Import\Controller\Adminhtml\Import
             if (isset($data['mappings']['magento'])) {
                 for ($i = 0; $i < count($data['mappings']['magento']); $i++) {
 
-                    if (!empty($data['mappings']['magento'][$i]) || !empty($data['mappings']['remote'][$i])) {
+                    if ((!empty($data['mappings']['magento'][$i]) || !empty($data['mappings']['remote'][$i])) ||
+                        !empty($data['mappings']['magento'][$i]) || !empty($data['mappings']['default'][$i])) {
                         $finalMappings['magento'][] = $data['mappings']['magento'][$i];
                         $finalMappings['remote'][] = $data['mappings']['remote'][$i];
                         $finalMappings['default'][] = $data['mappings']['default'][$i];

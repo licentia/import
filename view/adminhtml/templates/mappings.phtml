@@ -42,8 +42,8 @@ $mappings = json_decode($block->getImport()->getMappings(), true);
 <table class="data-grid " id="table-data">
     <thead>
     <tr>
-        <th class="data-grid-th"><?= __('Import File Attribute Name') ?></th>
         <th class="data-grid-th"><?= __('Magento Attribute Name') ?></th>
+        <th class="data-grid-th"><?= __('Import File Attribute Name') ?></th>
         <th class="data-grid-th"><?= __('Default Value') ?></th>
         <th class="data-grid-th"><?= __('Remove') ?></th>
     </tr>
@@ -52,9 +52,9 @@ $mappings = json_decode($block->getImport()->getMappings(), true);
     <?php if (isset($mappings['magento']) && is_array($mappings['magento'])): ?>
         <?php for ($i = 0; $i < count($mappings['magento']); $i++): ?>
             <tr>
-                <td><input type="text" value="<?= $block->escapeHtmlAttr($mappings['remote'][$i]) ?>"
-                           name="mappings[magento][]" class="small_input"></td>
                 <td><input type="text" value="<?= $block->escapeHtmlAttr($mappings['magento'][$i]) ?>"
+                           name="mappings[magento][]" class="small_input"></td>
+                <td><input type="text" value="<?= $block->escapeHtmlAttr($mappings['remote'][$i]) ?>"
                            name="mappings[remote][]" class="small_input"></td>
                 <td><input type="text" value="<?= $block->escapeHtmlAttr($mappings['default'][$i]) ?>"
                            name="mappings[default][]" class="small_input"></td>
@@ -74,6 +74,13 @@ $mappings = json_decode($block->getImport()->getMappings(), true);
     </tr>
     </tbody>
 </table>
-<div style=" margin: 20px 0;">
-    Very Important
+<br>
+<br>
+<div id="messages">
+    <div class="messages">
+        <div class="message message-notice notice">
+            <div data-ui-id="messages-message-notice"><?= __('Leaving the "Import File Attribute Name" field empty and filling the "Magento Attribute Name" will create a new column in the CSV file with the value in the "Default Value" column') ?>
+            </div>
+        </div>
+    </div>
 </div>

@@ -142,7 +142,6 @@ class Import extends \Magento\Framework\Model\AbstractModel
     ) {
 
         parent::__construct($context, $registry, $resource, $resourceCollection, $data);
-
         $this->curl = $curl;
         $this->storeManager = $storeManager;
         $this->transportBuilder = $transportBuilder;
@@ -461,9 +460,6 @@ class Import extends \Magento\Framework\Model\AbstractModel
             $fp = fopen($finalFile, 'w');
 
             $fieldSeparator = $this->getFieldSeparator();
-            if (!$fieldSeparator) {
-                $fieldSeparator = ',';
-            }
 
             fputcsv($fp, array_keys($data[0]), $fieldSeparator);
 
@@ -718,6 +714,9 @@ class Import extends \Magento\Framework\Model\AbstractModel
         return $localFile;
     }
 
+    /**
+     * @return array
+     */
     public function getMappingsArray()
     {
 
@@ -739,24 +738,22 @@ class Import extends \Magento\Framework\Model\AbstractModel
         return $finalMappings;
     }
 
+    /**
+     * @param $file
+     *
+     * @return false
+     */
     public function applyDataMappings($file)
     {
 
         $mappings = $this->getMappingsArray();
 
         if (!$mappings) {
-            return;
+            return false;
         }
 
         $fieldSeparator = $this->getFieldSeparator();
-        if (!$fieldSeparator) {
-            $fieldSeparator = ',';
-        }
-
         $fieldEnclosure = $this->getFieldsEnclosure();
-        if (!$fieldEnclosure) {
-            $fieldEnclosure = '"';
-        }
 
         $row = 1;
         $resultData = [];
@@ -866,6 +863,12 @@ class Import extends \Magento\Framework\Model\AbstractModel
                     $this->importModel->getData(MagentoImport::FIELD_NAME_VALIDATION_STRATEGY),
                     $this->importModel->getData(MagentoImport::FIELD_NAME_ALLOWED_ERROR_COUNT)
                 );
+
+                $this->_eventManager->dispatch('panda_import_upload_after',
+                    [
+                        'file'    => $fullFileNamePath,
+                        'adapter' => $this->importModel,
+                    ]);
 
                 $this->importModel->validateSource($this->getSource($fullFileNamePath));
 

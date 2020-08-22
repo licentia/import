@@ -107,8 +107,14 @@ class Import extends \Magento\Framework\Model\AbstractModel
     protected $curl;
 
     /**
+     * @var \Licentia\Equity\Helper\Math
+     */
+    protected $mathHelper;
+
+    /**
      * Import constructor.
      *
+     * @param \Licentia\Equity\Helper\Math                                 $mathHelper
      * @param \Magento\Framework\HTTP\Client\Curl                          $curl
      * @param \Magento\Framework\Translate\Inline\StateInterface           $inlineTranslation
      * @param \Magento\Store\Model\StoreManagerInterface                   $storeManager
@@ -125,6 +131,7 @@ class Import extends \Magento\Framework\Model\AbstractModel
      * @param ImageDirectoryBaseProvider|null                              $imageDirectoryBaseProvider
      */
     public function __construct(
+        \Licentia\Equity\Helper\Math $mathHelper,
         \Magento\Framework\HTTP\Client\Curl $curl,
         \Magento\Framework\Translate\Inline\StateInterface $inlineTranslation,
         \Magento\Store\Model\StoreManagerInterface $storeManager,
@@ -143,6 +150,7 @@ class Import extends \Magento\Framework\Model\AbstractModel
 
         parent::__construct($context, $registry, $resource, $resourceCollection, $data);
         $this->curl = $curl;
+        $this->mathHelper = $mathHelper;
         $this->storeManager = $storeManager;
         $this->transportBuilder = $transportBuilder;
         $this->scopeConfig = $scopeConfig;
@@ -739,6 +747,98 @@ class Import extends \Magento\Framework\Model\AbstractModel
     }
 
     /**
+     * @param $resultData
+     * @param $mappings
+     *
+     * @return mixed
+     */
+    public function replaceExpression($resultData, $mappings)
+    {
+
+        foreach ($mappings as $key => $row) {
+
+            $line = $row['default'];
+
+            if (stripos($line, '{') !== false) {
+
+                preg_match_all('/\{([a-z0-9_]+)\}/si', $line, $resultProduct);
+
+                foreach ($resultProduct[1] as $a => $item) {
+
+                    foreach ($resultData as $rIndex => $rValue) {
+
+                        foreach ($rValue as $fKey => $fValue) {
+
+                            if (stripos($fValue, '{') === false) {
+                                continue;
+                            }
+
+                            foreach ($resultProduct[1] as $rR1) {
+                                $resultData[$rIndex][$fKey] = str_replace('{' . $rR1 . '}', $rValue[$rR1],
+                                    $resultData[$rIndex][$fKey]);
+
+                                $resultData[$rIndex][$fKey] = str_replace(
+                                    [
+                                        '\+',
+                                        '\-',
+                                        '\/',
+                                        '\*',
+                                        '\(',
+                                        '\)',
+                                    ],
+                                    [
+                                        'PANDA_PLUS',
+                                        'PANDA_MINUS',
+                                        'PANDA_DIVIDE',
+                                        'PANDA_MULTIPLY',
+                                        'PANDA_OPEN_P',
+                                        'PANDA_CLOSE_P',
+                                    ],
+                                    $resultData[$rIndex][$fKey]
+                                );
+
+                                $tmpResult = str_split($resultData[$rIndex][$fKey]);
+                                try {
+                                    if (array_intersect(['+', '-', '/', '*'], $tmpResult)) {
+                                        $resultData[$rIndex][$fKey] = $this->mathHelper->evaluateExpression($resultData[$rIndex][$fKey]);
+                                    }
+                                } catch (\Exception $e) {
+
+                                }
+
+                                $resultData[$rIndex][$fKey] = str_replace(
+                                    [
+                                        'PANDA_PLUS',
+                                        'PANDA_MINUS',
+                                        'PANDA_DIVIDE',
+                                        'PANDA_MULTIPLY',
+                                        'PANDA_OPEN_P',
+                                        'PANDA_CLOSE_P',
+                                    ], [
+                                    '+',
+                                    '-',
+                                    '/',
+                                    '*',
+                                    '(',
+                                    ')',
+                                ],
+                                    $resultData[$rIndex][$fKey]
+                                );
+                            }
+
+                        }
+                    }
+
+                }
+            }
+
+        }
+
+        return $resultData;
+
+    }
+
+    /**
      * @param $file
      *
      * @return false
@@ -782,7 +882,7 @@ class Import extends \Magento\Framework\Model\AbstractModel
                     continue;
                 }
 
-                foreach ($mappings as $mapping) {
+                foreach ($mappings as $key => $mapping) {
 
                     if (!empty($mapping['magento']) &&
                         empty($mapping['remote']) &&
@@ -811,6 +911,8 @@ class Import extends \Magento\Framework\Model\AbstractModel
         }
 
         if ($resultData) {
+
+            $resultData = $this->replaceExpression($resultData, $mappings);
 
             $fp = fopen($file, 'w');
             fputcsv($fp, array_keys($resultData[0]), $fieldSeparator, $fieldEnclosure);
@@ -873,20 +975,22 @@ class Import extends \Magento\Framework\Model\AbstractModel
                 $this->importModel->validateSource($this->getSource($fullFileNamePath));
 
                 $this->importModel->importSource();
-            } else {
-                $result = 'success_no_file';
-            }
 
-            if ($this->importModel->getErrorAggregator()->getErrorsCount()) {
+                if ($this->importModel->getErrorAggregator()->getErrorsCount()) {
 
-                $message = [];
-                foreach ($this->importModel->getErrorAggregator()->getAllErrors() as $error) {
-                    $message[] = $error->getErrorMessage() . ' - Row: ' . $error->getRowNumber();
+                    $message = [];
+                    foreach ($this->importModel->getErrorAggregator()->getAllErrors() as $error) {
+                        $message[] = $error->getErrorMessage() . ' - Row: ' . $error->getRowNumber();
+                    }
+
+                    $result = 'fail';
+                    $message = implode("<br><br>", $message);
+                    $this->sendErrorEmail($message);
+
                 }
 
-                $result = 'fail';
-                $message = implode("<br><br>", $message);
-                $this->sendErrorEmail($message);
+            } else {
+                $result = 'success_no_file';
             }
 
         } catch (\Exception $e) {
@@ -895,10 +999,8 @@ class Import extends \Magento\Framework\Model\AbstractModel
             $this->sendErrorEmail($message);
         }
 
-        if ($fullFileNamePath) {
-            if (!$this->importModel->getErrorAggregator()->hasToBeTerminated()) {
-                $this->importModel->invalidateIndex();
-            }
+        if ($fullFileNamePath && !$this->importModel->getErrorAggregator()->hasToBeTerminated()) {
+            $this->importModel->invalidateIndex();
         }
 
         $this->setLastExecuted($this->pandaHelper->gmtDateTime());

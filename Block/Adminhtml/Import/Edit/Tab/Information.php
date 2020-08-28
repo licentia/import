@@ -399,6 +399,7 @@ class Information extends \Magento\Backend\Block\Widget\Form\Generic
                             $("#file_name").removeClass("required-entry");
                         }else{ 
                             $("#ftp_host").removeClass("required-entry");
+                            $("#remote_url").removeClass("required-entry");
                             $("#ftp_username").removeClass("required-entry");
                             $("#ftp_password").removeClass("required-entry");
                             $("#file_name").addClass("required-entry");

@@ -940,9 +940,8 @@ class Import extends \Magento\Framework\Model\AbstractModel
 
             $fullFileNamePath = $this->getFullFilePathName();
 
-            $this->applyDataMappings($fullFileNamePath);
-
             if ($fullFileNamePath) {
+                $this->applyDataMappings($fullFileNamePath);
                 $data = $this->getData();
                 $data['behavior'] = $this->getImportBehavior();
                 $data['entity'] = $this->getEntityType();

@@ -112,8 +112,14 @@ class Import extends \Magento\Framework\Model\AbstractModel
     protected $mathHelper;
 
     /**
+     * @var LogFactory
+     */
+    protected $logFactory;
+
+    /**
      * Import constructor.
      *
+     * @param LogFactory                                                   $logFactory
      * @param \Licentia\Equity\Helper\Math                                 $mathHelper
      * @param \Magento\Framework\HTTP\Client\Curl                          $curl
      * @param \Magento\Framework\Translate\Inline\StateInterface           $inlineTranslation
@@ -131,6 +137,7 @@ class Import extends \Magento\Framework\Model\AbstractModel
      * @param ImageDirectoryBaseProvider|null                              $imageDirectoryBaseProvider
      */
     public function __construct(
+        LogFactory $logFactory,
         \Licentia\Equity\Helper\Math $mathHelper,
         \Magento\Framework\HTTP\Client\Curl $curl,
         \Magento\Framework\Translate\Inline\StateInterface $inlineTranslation,
@@ -150,6 +157,7 @@ class Import extends \Magento\Framework\Model\AbstractModel
 
         parent::__construct($context, $registry, $resource, $resourceCollection, $data);
         $this->curl = $curl;
+        $this->logFactory = $logFactory;
         $this->mathHelper = $mathHelper;
         $this->storeManager = $storeManager;
         $this->transportBuilder = $transportBuilder;
@@ -405,6 +413,23 @@ class Import extends \Magento\Framework\Model\AbstractModel
     }
 
     /**
+     * @param $array
+     *
+     * @return int|mixed
+     */
+    public function countDimensions($array)
+    {
+
+        if (is_array(reset($array))) {
+            $return = $this->countDimensions(reset($array)) + 1;
+        } else {
+            $return = 1;
+        }
+
+        return $return;
+    }
+
+    /**
      * @param $localFile
      * @param $extension
      *
@@ -455,6 +480,9 @@ class Import extends \Magento\Framework\Model\AbstractModel
 
         if ($extension == 'json') {
             $data = json_decode($dirWrite->readFile($localFile), true);
+            if ($this->countDimensions($data) == 3) {
+                $data = reset($data);
+            }
         }
 
         if ($extension == 'xml') {
@@ -510,6 +538,11 @@ class Import extends \Magento\Framework\Model\AbstractModel
             $fileExtension = $this->getFileExtension($fileName);
 
             $localFile = $dirRead->getAbsolutePath($fileName);
+
+            if ($fileExtension != 'csv') {
+                $localFile = $this->convertToCsv($localFile, $fileExtension);
+            }
+
         }
 
         if ($this->getServerType() == 'url') {
@@ -965,7 +998,7 @@ class Import extends \Magento\Framework\Model\AbstractModel
                     $this->importModel->getData(MagentoImport::FIELD_NAME_ALLOWED_ERROR_COUNT)
                 );
 
-                $this->_eventManager->dispatch('panda_import_upload_after',
+                $this->_eventManager->dispatch('panda_import_before_validate',
                     [
                         'file'    => $fullFileNamePath,
                         'adapter' => $this->importModel,
@@ -985,6 +1018,15 @@ class Import extends \Magento\Framework\Model\AbstractModel
                     $result = 'fail';
                     $message = implode("<br><br>", $message);
                     $this->sendErrorEmail($message);
+                    $this->logFactory->create()
+                                     ->setData(
+                                         [
+                                             'import_id' => $this->importModel->getId(),
+                                             'result'    => $result,
+                                             'message'   => $message,
+                                         ]
+                                     )
+                                     ->save();
 
                 }
 
@@ -996,6 +1038,16 @@ class Import extends \Magento\Framework\Model\AbstractModel
             $message = $e->getMessage();
             $result = 'fail';
             $this->sendErrorEmail($message);
+
+            $this->logFactory->create()
+                             ->setData(
+                                 [
+                                     'import_id' => $this->importModel->getId(),
+                                     'result'    => $result,
+                                     'message'   => $message,
+                                 ]
+                             )
+                             ->save();
         }
 
         if ($fullFileNamePath && !$this->importModel->getErrorAggregator()->hasToBeTerminated()) {
@@ -1073,8 +1125,33 @@ class Import extends \Magento\Framework\Model\AbstractModel
                                  ->delete($localFile);
             }
 
+            $this->logFactory->create()
+                             ->setData(
+                                 [
+                                     'import_id' => $this->importModel->getId(),
+                                     'result'    => $result,
+                                     'created'   => $this->importModel->getCreatedItemsCount(),
+                                     'updated'   => $this->importModel->getUpdatedItemsCount(),
+                                     'deleted'   => $this->importModel->getDeletedItemsCount(),
+                                 ]
+                             )
+                             ->save();
         }
 
+        if ($result == 'success_no_file') {
+            $this->logFactory->create()
+                             ->setData(
+                                 [
+                                     'import_id' => $this->importModel->getId(),
+                                     'result'    => $result,
+                                     'created'   => 0,
+                                     'updated'   => 0,
+                                     'deleted'   => 0,
+                                     'message'   => __('No File'),
+                                 ]
+                             )
+                             ->save();
+        }
         if ($result == 'success_no_file' || $result == 'success') {
             $this->sendSuccessEmail($result);
 

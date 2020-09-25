@@ -65,6 +65,17 @@ class Tabs extends \Magento\Backend\Block\Widget\Tabs
             ]
         );
 
+        $this->addTab(
+            'log_section',
+            [
+                'label'   => __('Import Log'),
+                'title'   => __('Import Log'),
+                'content' => $this->getLayout()
+                                  ->createBlock('Licentia\Import\Block\Adminhtml\Import\Edit\Tab\Log')
+                                  ->toHtml(),
+            ]
+        );
+
         return parent::_beforeToHtml();
     }
 }

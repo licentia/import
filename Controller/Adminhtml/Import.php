@@ -62,7 +62,7 @@ class Import extends Action
     /**
      * @var \Licentia\Import\Helper\Data
      */
-    protected $pandaHelper;
+    protected $importHelper;
 
     /**
      * Import constructor.
@@ -80,7 +80,7 @@ class Import extends Action
         \Magento\Framework\View\Result\PageFactory $resultPageFactory,
         \Magento\Framework\Registry $registry,
         \Licentia\Import\Model\ImportFactory $importFactory,
-        \Licentia\Panda\Helper\Data $pandaHelper,
+        \Licentia\Import\Helper\Data $importHelper,
         \Magento\Backend\Model\View\Result\ForwardFactory $resultForwardFactory,
         \Magento\Framework\View\Result\LayoutFactory $resultLayoutFactory
     ) {
@@ -89,7 +89,7 @@ class Import extends Action
         $this->resultPageFactory = $resultPageFactory;
         $this->registry = $registry;
         $this->layoutFactory = $resultLayoutFactory;
-        $this->pandaHelper = $pandaHelper;
+        $this->importHelper = $importHelper;
         $this->importFactory = $importFactory;
         parent::__construct($context);
 

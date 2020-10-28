@@ -34,7 +34,7 @@ class Mapping extends \Magento\Backend\Block\Widget\Form\Generic
     /**
      * @var \Licentia\Import\Helper\Data
      */
-    protected $pandaHelper;
+    protected $importHelper;
 
     /**
      * @var \Magento\Store\Model\System\Store
@@ -61,13 +61,13 @@ class Mapping extends \Magento\Backend\Block\Widget\Form\Generic
         \Magento\Backend\Block\Template\Context $context,
         \Magento\Framework\Registry $registry,
         \Magento\Framework\Data\FormFactory $formFactory,
-        \Licentia\Panda\Helper\Data $pandaHelper,
+        \Licentia\Import\Helper\Data $importHelper,
         \Magento\Store\Model\System\Store $systemStore,
         \Licentia\Import\Model\ImportFactory $importFactory,
         array $data = []
     ) {
 
-        $this->pandaHelper = $pandaHelper;
+        $this->importHelper = $importHelper;
         $this->importFactory = $importFactory;
         $this->systemStore = $systemStore;
         parent::__construct($context, $registry, $formFactory, $data);

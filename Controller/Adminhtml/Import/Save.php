@@ -70,16 +70,16 @@ class Save extends \Licentia\Import\Controller\Adminhtml\Import
             try {
 
                 if (isset($data['ftp_password']) &&
-                    $data['ftp_password'] == \Licentia\Panda\Model\Senders::OBSCURE_PASSWORD_REPLACEMENT) {
+                    $data['ftp_password'] == \Licentia\Import\Model\Import::OBSCURE_PASSWORD_REPLACEMENT) {
                     unset($data['ftp_password']);
                 }
                 if (isset($data['remote_password']) &&
-                    $data['remote_password'] == \Licentia\Panda\Model\Senders::OBSCURE_PASSWORD_REPLACEMENT) {
+                    $data['remote_password'] == \Licentia\Import\Model\Import::OBSCURE_PASSWORD_REPLACEMENT) {
                     unset($data['remote_password']);
                 }
 
                 if (isset($data['remote_bearer']) &&
-                    $data['remote_bearer'] == \Licentia\Panda\Model\Senders::OBSCURE_PASSWORD_REPLACEMENT) {
+                    $data['remote_bearer'] == \Licentia\Import\Model\Import::OBSCURE_PASSWORD_REPLACEMENT) {
                     unset($data['remote_bearer']);
                 }
 

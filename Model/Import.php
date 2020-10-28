@@ -35,6 +35,8 @@ use \Magento\ImportExport\Model\Import\ImageDirectoryBaseProvider;
 class Import extends \Magento\Framework\Model\AbstractModel
 {
 
+    const OBSCURE_PASSWORD_REPLACEMENT = 'nothingtoseehere';
+
     /**
      *
      */
@@ -64,7 +66,7 @@ class Import extends \Magento\Framework\Model\AbstractModel
     /**
      * @var \Licentia\Import\Helper\Data
      */
-    protected $pandaHelper;
+    protected $importHelper;
 
     /**
      * @var \Magento\Framework\Filesystem
@@ -107,11 +109,6 @@ class Import extends \Magento\Framework\Model\AbstractModel
     protected $curl;
 
     /**
-     * @var \Licentia\Equity\Helper\Math
-     */
-    protected $mathHelper;
-
-    /**
      * @var LogFactory
      */
     protected $logFactory;
@@ -120,7 +117,6 @@ class Import extends \Magento\Framework\Model\AbstractModel
      * Import constructor.
      *
      * @param LogFactory                                                   $logFactory
-     * @param \Licentia\Equity\Helper\Math                                 $mathHelper
      * @param \Magento\Framework\HTTP\Client\Curl                          $curl
      * @param \Magento\Framework\Translate\Inline\StateInterface           $inlineTranslation
      * @param \Magento\Store\Model\StoreManagerInterface                   $storeManager
@@ -128,7 +124,7 @@ class Import extends \Magento\Framework\Model\AbstractModel
      * @param \Magento\Framework\App\Config\ScopeConfigInterface           $scopeConfig
      * @param MagentoImport                                                $importModel
      * @param \Magento\Framework\Filesystem                                $filesystem
-     * @param \Licentia\Panda\Helper\Data                                  $pandaHelper
+     * @param \Licentia\Import\Helper\Data                                 $importHelper
      * @param \Magento\Framework\Model\Context                             $context
      * @param \Magento\Framework\Registry                                  $registry
      * @param \Magento\Framework\Model\ResourceModel\AbstractResource|null $resource
@@ -138,7 +134,6 @@ class Import extends \Magento\Framework\Model\AbstractModel
      */
     public function __construct(
         LogFactory $logFactory,
-        \Licentia\Equity\Helper\Math $mathHelper,
         \Magento\Framework\HTTP\Client\Curl $curl,
         \Magento\Framework\Translate\Inline\StateInterface $inlineTranslation,
         \Magento\Store\Model\StoreManagerInterface $storeManager,
@@ -146,7 +141,7 @@ class Import extends \Magento\Framework\Model\AbstractModel
         \Magento\Framework\App\Config\ScopeConfigInterface $scopeConfig,
         MagentoImport $importModel,
         \Magento\Framework\Filesystem $filesystem,
-        \Licentia\Panda\Helper\Data $pandaHelper,
+        \Licentia\Import\Helper\Data $importHelper,
         \Magento\Framework\Model\Context $context,
         \Magento\Framework\Registry $registry,
         \Magento\Framework\Model\ResourceModel\AbstractResource $resource = null,
@@ -158,13 +153,12 @@ class Import extends \Magento\Framework\Model\AbstractModel
         parent::__construct($context, $registry, $resource, $resourceCollection, $data);
         $this->curl = $curl;
         $this->logFactory = $logFactory;
-        $this->mathHelper = $mathHelper;
         $this->storeManager = $storeManager;
         $this->transportBuilder = $transportBuilder;
         $this->scopeConfig = $scopeConfig;
         $this->importModel = $importModel;
         $this->filesystem = $filesystem;
-        $this->pandaHelper = $pandaHelper;
+        $this->importHelper = $importHelper;
         $this->inlineTranslation = $inlineTranslation;
         $this->imagesDirProvider = $imageDirectoryBaseProvider
                                    ?? ObjectManager::getInstance()->get(ImageDirectoryBaseProvider::class);
@@ -188,13 +182,13 @@ class Import extends \Magento\Framework\Model\AbstractModel
     {
 
         if ($this->getFtpPassword()) {
-            $this->setFtpPassword($this->pandaHelper->getEncryptor()->decrypt($this->getFtpPassword()));
+            $this->setFtpPassword($this->importHelper->getEncryptor()->decrypt($this->getFtpPassword()));
         }
         if ($this->getRemotePassword()) {
-            $this->setRemotePassword($this->pandaHelper->getEncryptor()->decrypt($this->getRemotePassword()));
+            $this->setRemotePassword($this->importHelper->getEncryptor()->decrypt($this->getRemotePassword()));
         }
         if ($this->getRemoteBearer()) {
-            $this->setRemoteBearer($this->pandaHelper->getEncryptor()->decrypt($this->getRemoteBearer()));
+            $this->setRemoteBearer($this->importHelper->getEncryptor()->decrypt($this->getRemoteBearer()));
         }
 
         return parent::_afterLoad();
@@ -207,15 +201,15 @@ class Import extends \Magento\Framework\Model\AbstractModel
     {
 
         if ($this->getFtpPassword()) {
-            $this->setFtpPassword($this->pandaHelper->getEncryptor()->encrypt($this->getFtpPassword()));
+            $this->setFtpPassword($this->importHelper->getEncryptor()->encrypt($this->getFtpPassword()));
         }
 
         if ($this->getRemotePassword()) {
-            $this->setRemotePassword($this->pandaHelper->getEncryptor()->encrypt($this->getRemotePassword()));
+            $this->setRemotePassword($this->importHelper->getEncryptor()->encrypt($this->getRemotePassword()));
         }
 
         if ($this->getRemoteBearer()) {
-            $this->setRemoteBearer($this->pandaHelper->getEncryptor()->encrypt($this->getRemoteBearer()));
+            $this->setRemoteBearer($this->importHelper->getEncryptor()->encrypt($this->getRemoteBearer()));
         }
 
         if ($this->getCron() !== 'other') {
@@ -223,7 +217,7 @@ class Import extends \Magento\Framework\Model\AbstractModel
         }
 
         $cron = \Cron\CronExpression::factory($this->getCronExpression());
-        $currentTime = $this->pandaHelper->gmtDateTime();
+        $currentTime = $this->importHelper->gmtDateTime();
         $nextExecutionAfter = $cron->getNextRunDate($currentTime)->format('Y-m-d H:i:s');
         $this->setNextExecution($nextExecutionAfter);
 
@@ -271,7 +265,7 @@ class Import extends \Magento\Framework\Model\AbstractModel
         /** @var Import $job */
         foreach ($collection as $job) {
             $cron = \Cron\CronExpression::factory($job->getCronExpression());
-            $currentTime = $this->pandaHelper->gmtDateTime();
+            $currentTime = $this->importHelper->gmtDateTime();
             $nextRun = $cron->getNextRunDate($job->getLastExecuted())->format('Y-m-d H:i:s');
             $nextExecutionAfter = $cron->getNextRunDate()->format('Y-m-d H:i:s');
             if ($currentTime >= $nextRun) {
@@ -312,10 +306,12 @@ class Import extends \Magento\Framework\Model\AbstractModel
                                                     'store' => \Magento\Store\Model\Store::DEFAULT_STORE_ID,
                                                 ]
                                             )
-                                            ->setTemplateVars([
-                                                'message' => $message,
-                                                'name'    => $this->getName(),
-                                            ])
+                                            ->setTemplateVars(
+                                                [
+                                                    'message' => $message,
+                                                    'name'    => $this->getName(),
+                                                ]
+                                            )
                                             ->setFromByScope($this->getFailedEmailSender())
                                             ->addTo($email)
                                             ->getTransport();
@@ -330,7 +326,7 @@ class Import extends \Magento\Framework\Model\AbstractModel
             }
 
         } catch (\Exception $e) {
-            $this->pandaHelper->logException($e);
+            $this->importHelper->logException($e);
         }
     }
 
@@ -396,7 +392,7 @@ class Import extends \Magento\Framework\Model\AbstractModel
             }
 
         } catch (\Exception $e) {
-            $this->pandaHelper->logException($e);
+            $this->importHelper->logException($e);
         }
     }
 
@@ -542,6 +538,13 @@ class Import extends \Magento\Framework\Model\AbstractModel
             if ($fileExtension != 'csv') {
                 $localFile = $this->convertToCsv($localFile, $fileExtension);
             }
+            $type = pathinfo($localFile);
+
+            if ($type['basename'] != $this->getEntityType() . '.csv') {
+                $newFile = $dirRead->getAbsolutePath($fileDir . $this->getEntityType() . '.csv');
+                $dirWrite->renameFile($localFile, $newFile);
+                $localFile = $newFile;
+            }
 
         }
 
@@ -562,8 +565,10 @@ class Import extends \Magento\Framework\Model\AbstractModel
             }
 
             $fileExtension = $this->getFileExtension($this->getRemoteUrl());
-            $tmpFileName = $dirRead->getAbsolutePath(self::LOCAL_IMPORT_PATH . $this->getEntityType() . '.' .
-                                                     $fileExtension);
+            $tmpFileName = $dirRead->getAbsolutePath(
+                self::LOCAL_IMPORT_PATH . $this->getEntityType() . '.' .
+                $fileExtension
+            );
 
             $dirWrite->writeFile($tmpFileName, $this->curl->getBody());
 
@@ -583,8 +588,10 @@ class Import extends \Magento\Framework\Model\AbstractModel
             $fileName = $fileDir . $this->getFileName();
             $archiveDir = $fileDir . 'archives/';
 
-            $localFile = $dirWrite->getAbsolutePath(self::LOCAL_IMPORT_PATH . $this->getEntityType() . '.' .
-                                                    $this->getFileExtension($fileName));
+            $localFile = $dirWrite->getAbsolutePath(
+                self::LOCAL_IMPORT_PATH . $this->getEntityType() . '.' .
+                $this->getFileExtension($fileName)
+            );
             $dirWrite->writeFile($localFile, '');
 
             $mediaDir = $this->imagesDirProvider->getDirectory()->getAbsolutePath();
@@ -623,21 +630,6 @@ class Import extends \Magento\Framework\Model\AbstractModel
                 return false;
             }
 
-            if ($this->getAfterImport() == 'archive') {
-                try {
-                    $currentDir = ftp_pwd($connId);
-                    if (!ftp_chdir($connId, $archiveDir)) {
-                        ftp_mkdir($connId, $archiveDir);
-                    }
-                    ftp_chdir($connId, $currentDir);
-                    if (!ftp_chdir($connId, $this->getImportImagesFileDir() . 'archives/')) {
-                        ftp_mkdir($connId, $this->getImportImagesFileDir() . 'archives/');
-                    }
-                    ftp_chdir($connId, $currentDir);
-                } catch (\Exception $e) {
-                }
-            }
-
             $images = ftp_mlsd($connId, $this->getImportImagesFileDir());
 
             foreach ($images as $image) {
@@ -652,24 +644,13 @@ class Import extends \Magento\Framework\Model\AbstractModel
                     continue;
                 }
 
-                ftp_get($connId, $mediaDir . $image['name'], $this->getImportImagesFileDir() . $image['name'],
-                    $binary);
+                ftp_get(
+                    $connId,
+                    $mediaDir . $image['name'],
+                    $this->getImportImagesFileDir() . $image['name'],
+                    $binary
+                );
 
-                if ($this->getAfterImport() == 'archive') {
-                    ftp_rename($connId, $this->getImportImagesFileDir() . $image['name'],
-                        $this->getImportImagesFileDir() . 'archives/' . date('Y-m-d_H-i') . '_' . $image['name']);
-                }
-                if ($this->getAfterImport() == 'delete') {
-                    ftp_delete($connId, $this->getImportImagesFileDir() . $image['name']);
-                }
-            }
-
-            if ($this->getAfterImport() == 'archive') {
-                ftp_rename($connId, $fileName, $archiveDir . date('Y-m-d_H-i') . '_' . $this->getFileName());
-            }
-
-            if ($this->getAfterImport() == 'delete') {
-                ftp_delete($connId, $fileName);
             }
 
             ftp_close($connId);
@@ -679,10 +660,11 @@ class Import extends \Magento\Framework\Model\AbstractModel
 
             $fileDir = $this->getFileDirectory();
             $fileName = $fileDir . $this->getFileName();
-            $archiveDir = $fileDir . 'archives/';
 
-            $localFile = $dirWrite->getAbsolutePath(self::LOCAL_IMPORT_PATH . $this->getEntityType() . '.' .
-                                                    $this->getFileExtension($fileName));
+            $localFile = $dirWrite->getAbsolutePath(
+                self::LOCAL_IMPORT_PATH . $this->getEntityType() . '.' .
+                $this->getFileExtension($fileName)
+            );
 
             $mediaDir = $this->imagesDirProvider->getDirectory()->getAbsolutePath();
 
@@ -707,17 +689,6 @@ class Import extends \Magento\Framework\Model\AbstractModel
                 $localFile = $this->convertToCsv($localFile, $extension);
             }
 
-            if ($this->getAfterImport() == 'archive') {
-
-                if (!$sftp->is_dir($archiveDir)) {
-                    $sftp->mkdir($archiveDir);
-                }
-                if (!$sftp->is_dir($this->getImportImagesFileDir() . 'archives/')) {
-                    $sftp->mkdir($this->getImportImagesFileDir() . 'archives/');
-                }
-
-            }
-
             $images = $sftp->rawlist($this->getImportImagesFileDir());
 
             foreach ($images as $image) {
@@ -733,23 +704,8 @@ class Import extends \Magento\Framework\Model\AbstractModel
                 }
 
                 $sftp->get($this->getImportImagesFileDir() . $image['filename'], $mediaDir . $image['filename']);
-
-                if ($this->getAfterImport() == 'archive') {
-                    $sftp->rename($this->getImportImagesFileDir() . $image['filename'],
-                        $this->getImportImagesFileDir() . 'archives/' . date('Y-m-d_H-i') . '_' . $image['filename']);
-                }
-                if ($this->getAfterImport() == 'delete') {
-                    $sftp->delete($this->getImportImagesFileDir() . $image['filename'], false);
-                }
             }
 
-            if ($this->getAfterImport() == 'archive') {
-                $sftp->rename($fileName, $archiveDir . date('Y-m-d_H-i') . '_' . $this->getFileName());
-            }
-
-            if ($this->getAfterImport() == 'delete') {
-                $sftp->delete($sftp, $fileName);
-            }
         }
 
         return $localFile;
@@ -807,8 +763,11 @@ class Import extends \Magento\Framework\Model\AbstractModel
                             }
 
                             foreach ($resultProduct[1] as $rR1) {
-                                $resultData[$rIndex][$fKey] = str_replace('{' . $rR1 . '}', $rValue[$rR1],
-                                    $resultData[$rIndex][$fKey]);
+                                $resultData[$rIndex][$fKey] = str_replace(
+                                    '{' . $rR1 . '}',
+                                    $rValue[$rR1],
+                                    $resultData[$rIndex][$fKey]
+                                );
 
                                 $resultData[$rIndex][$fKey] = str_replace(
                                     [
@@ -833,7 +792,9 @@ class Import extends \Magento\Framework\Model\AbstractModel
                                 $tmpResult = str_split($resultData[$rIndex][$fKey]);
                                 try {
                                     if (array_intersect(['+', '-', '/', '*'], $tmpResult)) {
-                                        $resultData[$rIndex][$fKey] = $this->mathHelper->evaluateExpression($resultData[$rIndex][$fKey]);
+                                        $resultData[$rIndex][$fKey] = $this->importHelper->evaluateExpression(
+                                            $resultData[$rIndex][$fKey]
+                                        );
                                     }
                                 } catch (\Exception $e) {
 
@@ -847,14 +808,15 @@ class Import extends \Magento\Framework\Model\AbstractModel
                                         'PANDA_MULTIPLY',
                                         'PANDA_OPEN_P',
                                         'PANDA_CLOSE_P',
-                                    ], [
-                                    '+',
-                                    '-',
-                                    '/',
-                                    '*',
-                                    '(',
-                                    ')',
-                                ],
+                                    ],
+                                    [
+                                        '+',
+                                        '-',
+                                        '/',
+                                        '*',
+                                        '(',
+                                        ')',
+                                    ],
                                     $resultData[$rIndex][$fKey]
                                 );
                             }
@@ -879,9 +841,12 @@ class Import extends \Magento\Framework\Model\AbstractModel
     public function applyDataMappings($file)
     {
 
-        $mappings = $this->getMappingsArray();
+        $mappings = (array) $this->getMappingsArray();
+        $ignoreColumns = explode(',', $this->getIgnoreColumns());
+        $ignoreColumns = array_map('trim', $ignoreColumns);
+        $ignoreColumns = array_filter($ignoreColumns);
 
-        if (!$mappings) {
+        if (!$mappings && !$ignoreColumns) {
             return false;
         }
 
@@ -938,7 +903,8 @@ class Import extends \Magento\Framework\Model\AbstractModel
 
                 }
 
-                $resultData[] = array_combine($map, $data);
+                $tmpResult = array_combine($map, $data);
+                $resultData[] = array_diff_key($tmpResult, array_keys($ignoreColumns));
 
             }
         }
@@ -998,11 +964,13 @@ class Import extends \Magento\Framework\Model\AbstractModel
                     $this->importModel->getData(MagentoImport::FIELD_NAME_ALLOWED_ERROR_COUNT)
                 );
 
-                $this->_eventManager->dispatch('panda_import_before_validate',
+                $this->_eventManager->dispatch(
+                    'panda_import_before_validate',
                     [
                         'file'    => $fullFileNamePath,
                         'adapter' => $this->importModel,
-                    ]);
+                    ]
+                );
 
                 $this->importModel->validateSource($this->getSource($fullFileNamePath));
 
@@ -1021,7 +989,7 @@ class Import extends \Magento\Framework\Model\AbstractModel
                     $this->logFactory->create()
                                      ->setData(
                                          [
-                                             'import_id' => $this->importModel->getId(),
+                                             'import_id' => $this->getId(),
                                              'result'    => $result,
                                              'message'   => $message,
                                          ]
@@ -1042,7 +1010,7 @@ class Import extends \Magento\Framework\Model\AbstractModel
             $this->logFactory->create()
                              ->setData(
                                  [
-                                     'import_id' => $this->importModel->getId(),
+                                     'import_id' => $this->getId(),
                                      'result'    => $result,
                                      'message'   => $message,
                                  ]
@@ -1053,11 +1021,6 @@ class Import extends \Magento\Framework\Model\AbstractModel
         if ($fullFileNamePath && !$this->importModel->getErrorAggregator()->hasToBeTerminated()) {
             $this->importModel->invalidateIndex();
         }
-
-        $this->setLastExecuted($this->pandaHelper->gmtDateTime());
-        $this->setLastExecutionStatus($result);
-        $this->setFailMessage($message);
-        $this->save();
 
         if ($result == 'success') {
 
@@ -1090,9 +1053,11 @@ class Import extends \Magento\Framework\Model\AbstractModel
                     if ($this->getAfterImport() == 'archive') {
 
                         $this->filesystem->getDirectoryWrite(DirectoryList::ROOT)
-                                         ->renameFile($file->getRealPath(),
+                                         ->renameFile(
+                                             $file->getRealPath(),
                                              $archiveMediaDir . 'panda_' . date('Y-m-d_H-i') . '_' .
-                                             $file->getFileName());
+                                             $file->getFileName()
+                                         );
                     }
                     if ($this->getAfterImport() == 'delete') {
                         $this->filesystem->getDirectoryWrite(DirectoryList::ROOT)
@@ -1116,8 +1081,11 @@ class Import extends \Magento\Framework\Model\AbstractModel
                 $archiveDir = 'var/import_history/';
 
                 $this->filesystem->getDirectoryWrite(DirectoryList::ROOT)
-                                 ->renameFile($localFile,
-                                     $archiveDir . 'panda_' . date('Y-m-d_H-i') . '_' . $fileInfo['filename'] . '.csv');
+                                 ->renameFile(
+                                     $localFile,
+                                     $archiveDir . 'panda_' . date('Y-m-d_H-i') . '_' . $fileInfo['filename'] . '.csv'
+                                 );
+
             }
 
             if ($this->getAfterImport() == 'delete') {
@@ -1128,7 +1096,7 @@ class Import extends \Magento\Framework\Model\AbstractModel
             $this->logFactory->create()
                              ->setData(
                                  [
-                                     'import_id' => $this->importModel->getId(),
+                                     'import_id' => $this->getId(),
                                      'result'    => $result,
                                      'created'   => $this->importModel->getCreatedItemsCount(),
                                      'updated'   => $this->importModel->getUpdatedItemsCount(),
@@ -1136,13 +1104,141 @@ class Import extends \Magento\Framework\Model\AbstractModel
                                  ]
                              )
                              ->save();
+
+            if ($this->getServerType() == 'ftp') {
+
+                $fileDir = $this->getFileDirectory();
+                $fileName = $fileDir . $this->getFileName();
+                $archiveDir = $fileDir . 'archives/';
+                $connId = ftp_connect($this->getFtpHost(), $this->getFtpPort() ?? 21);
+                if (ftp_login($connId, $this->getFtpUsername(), $this->getFtpPassword())) {
+
+                    if ($this->getFtpPassiveMode()) {
+                        ftp_pasv($connId, true);
+                    }
+
+                    if ($this->getAfterImport() == 'archive') {
+                        try {
+                            $currentDir = ftp_pwd($connId);
+                            if (!ftp_chdir($connId, $archiveDir)) {
+                                ftp_mkdir($connId, $archiveDir);
+                            }
+                            ftp_chdir($connId, $currentDir);
+                            if (!ftp_chdir($connId, $this->getImportImagesFileDir() . 'archives/')) {
+                                ftp_mkdir($connId, $this->getImportImagesFileDir() . 'archives/');
+                            }
+                            ftp_chdir($connId, $currentDir);
+                        } catch (\Exception $e) {
+                        }
+                    }
+
+                    if ($this->getAfterImport() == 'archive') {
+                        ftp_rename($connId, $fileName, $archiveDir . date('Y-m-d_H-i') . '_' . $this->getFileName());
+                    }
+
+                    if ($this->getAfterImport() == 'delete') {
+                        ftp_delete($connId, $fileName);
+                    }
+
+                    $images = ftp_mlsd($connId, $this->getImportImagesFileDir());
+
+                    foreach ($images as $image) {
+
+                        if ($image['type'] != 'file') {
+                            continue;
+                        }
+
+                        $type = pathinfo($image['name'], PATHINFO_EXTENSION);
+
+                        if (!in_array(strtolower($type), ['png', 'jpg', 'jpeg'])) {
+                            continue;
+                        }
+
+                        if ($this->getAfterImport() == 'archive') {
+                            ftp_rename(
+                                $connId,
+                                $this->getImportImagesFileDir() . $image['name'],
+                                $this->getImportImagesFileDir() . 'archives/' . date('Y-m-d_H-i') . '_' . $image['name']
+                            );
+                        }
+                        if ($this->getAfterImport() == 'delete') {
+                            ftp_delete($connId, $this->getImportImagesFileDir() . $image['name']);
+                        }
+                    }
+
+                    ftp_close($connId);
+                }
+            }
+
+            if ($this->getServerType() == 'ssh') {
+
+                $fileDir = $this->getFileDirectory();
+                $fileName = $fileDir . $this->getFileName();
+                $archiveDir = $fileDir . 'archives/';
+
+                $sftp = new SFTP($this->getFtpHost(), $this->getFtpPort() ?? 22);
+                if ($sftp->login($this->getFtpUsername(), $this->getFtpPassword())) {
+
+                    if ($this->getAfterImport() == 'archive') {
+                        if (!$sftp->is_dir($archiveDir)) {
+                            $sftp->mkdir($archiveDir);
+                        }
+                        if (!$sftp->is_dir($this->getImportImagesFileDir() . 'archives/')) {
+                            $sftp->mkdir($this->getImportImagesFileDir() . 'archives/');
+                        }
+
+                    }
+
+                    if ($this->getAfterImport() == 'archive') {
+                        $sftp->rename($fileName, $archiveDir . date('Y-m-d_H-i') . '_' . $this->getFileName());
+                    }
+                    if ($this->getAfterImport() == 'delete') {
+                        $sftp->delete($sftp, $fileName);
+                    }
+
+                    $images = $sftp->rawlist($this->getImportImagesFileDir());
+
+                    foreach ($images as $image) {
+
+                        if ($image['type'] != 1) {
+                            continue;
+                        }
+
+                        $type = pathinfo($image['filename'], PATHINFO_EXTENSION);
+
+                        if (!in_array(strtolower($type), ['png', 'jpg', 'jpeg'])) {
+                            continue;
+                        }
+
+                        if ($this->getAfterImport() == 'archive') {
+                            $sftp->rename(
+                                $this->getImportImagesFileDir() . $image['filename'],
+                                $this->getImportImagesFileDir() . 'archives/' . date(
+                                    'Y-m-d_H-i'
+                                ) . '_' . $image['filename']
+                            );
+                        }
+                        if ($this->getAfterImport() == 'delete') {
+                            $sftp->delete($this->getImportImagesFileDir() . $image['filename'], false);
+                        }
+                    }
+
+                }
+
+            }
+
         }
+
+        $this->setLastExecuted($this->importHelper->gmtDateTime());
+        $this->setLastExecutionStatus($result);
+        $this->setFailMessage($message);
+        $this->save();
 
         if ($result == 'success_no_file') {
             $this->logFactory->create()
                              ->setData(
                                  [
-                                     'import_id' => $this->importModel->getId(),
+                                     'import_id' => $this->getId(),
                                      'result'    => $result,
                                      'created'   => 0,
                                      'updated'   => 0,
@@ -2007,6 +2103,26 @@ class Import extends \Magento\Framework\Model\AbstractModel
     {
 
         return $this->getData('fail_message');
+    }
+
+    /**
+     * @param $ignoreColumns
+     *
+     * @return $this
+     */
+    public function setIgnoreColumns($ignoreColumns)
+    {
+
+        return $this->setData('ignore_columns', $ignoreColumns);
+    }
+
+    /**
+     * @return mixed
+     */
+    public function getIgnoreColumns()
+    {
+
+        return $this->getData('ignore_columns');
     }
 
 }

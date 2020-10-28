@@ -56,7 +56,7 @@ class Run extends \Licentia\Import\Controller\Adminhtml\Import
                 );
             }
 
-            return $resultRedirect->setPath('*/*/');
+            return $resultRedirect->setPath('*/*/edit', ['id' => $model->getId()]);
         }
         $this->messageManager->addErrorMessage(__('We can\'t find an Scheduled Import to run.'));
 

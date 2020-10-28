@@ -30,7 +30,7 @@ class ImportData
     /**
      * @var \Licentia\Panda\Helper\Data
      */
-    protected $pandaHelper;
+    protected $importHelper;
 
     /**
      * @var \Licentia\Import\Model\ImportFactory
@@ -45,11 +45,11 @@ class ImportData
      */
     public function __construct(
         \Licentia\Import\Model\ImportFactory $importFactory,
-        \Licentia\Import\Helper\Data $pandaHelper
+        \Licentia\Import\Helper\Data $importHelper
     ) {
 
         $this->importFactory = $importFactory;
-        $this->pandaHelper = $pandaHelper;
+        $this->importHelper = $importHelper;
     }
 
     /**
@@ -61,7 +61,7 @@ class ImportData
         try {
             $this->importFactory->create()->executeCron();
         } catch (\Exception $e) {
-            $this->pandaHelper->logWarning($e);
+            $this->importHelper->logWarning($e);
         }
     }
 }

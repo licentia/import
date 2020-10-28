@@ -35,7 +35,7 @@ class Information extends \Magento\Backend\Block\Widget\Form\Generic
     /**
      * @var \Licentia\Import\Helper\Data
      */
-    protected $pandaHelper;
+    protected $importHelper;
 
     /**
      * @var \Magento\Store\Model\System\Store
@@ -94,7 +94,7 @@ class Information extends \Magento\Backend\Block\Widget\Form\Generic
         \Magento\Backend\Block\Template\Context $context,
         \Magento\Framework\Registry $registry,
         \Magento\Framework\Data\FormFactory $formFactory,
-        \Licentia\Panda\Helper\Data $pandaHelper,
+        \Licentia\Import\Helper\Data $importHelper,
         \Magento\Store\Model\System\Store $systemStore,
         \Licentia\Import\Model\ImportFactory $importFactory,
         \Magento\ImportExport\Model\Source\Import\Behavior\Factory $behaviorFactory,
@@ -105,7 +105,7 @@ class Information extends \Magento\Backend\Block\Widget\Form\Generic
 
         $this->emailTemplate = $emailTemplate;
         $this->emailIdentity = $emailIdentity;
-        $this->pandaHelper = $pandaHelper;
+        $this->importHelper = $importHelper;
         $this->importFactory = $importFactory;
         $this->systemStore = $systemStore;
         $this->_entityFactory = $entityFactory;

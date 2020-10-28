@@ -72,7 +72,7 @@ class Edit extends \Licentia\Import\Controller\Adminhtml\Import
             $model->setData($data);
         }
 
-        $model->setFtpPassword(\Licentia\Panda\Model\Senders::OBSCURE_PASSWORD_REPLACEMENT);
+        $model->setFtpPassword(\Licentia\Import\Model\Import::OBSCURE_PASSWORD_REPLACEMENT);
 
         $resultPage = $this->_initAction();
         $resultPage->addBreadcrumb($id ? __('Edit Scheduled Import') : __('New Scheduled Import'),

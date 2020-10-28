@@ -84,3 +84,19 @@ $mappings = json_decode($block->getImport()->getMappings(), true);
         </div>
     </div>
 </div>
+
+<table class="data-grid " id="table-data">
+    <thead>
+    <tr>
+        <th class="data-grid-th"><?= __('Ignore Source Columns') ?></th>
+    </tr>
+    </thead>
+    <tbody>
+    <tr>
+        <td><input type="text" value="<?= $block->escapeHtmlAttr($block->getImport()->getData('ignore_columns')) ?>" name="ignore_columns" class="input"
+                   style="width: 100%"><br><?= __('Separate multiples with a comma') ?></td>
+    </tr>
+    </tbody>
+</table>
+<br>
+<br>

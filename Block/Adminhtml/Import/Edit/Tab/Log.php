@@ -88,6 +88,9 @@ class Log extends \Magento\Backend\Block\Widget\Grid\Extended
     {
 
         $collection = $this->collectionFactory->create();
+        /** @var \Licentia\Import\Model\Import $import */
+        $import = $this->registry->registry('panda_import');
+        $collection->addFieldToFilter('import_id', $import->getId());
 
         $this->setCollection($collection);
 

@@ -618,6 +618,17 @@ class Import extends \Magento\Framework\Model\AbstractModel
                 $file = ftp_get($connId, $localFile, $fileName, $binary);
                 $extension = $this->getFileExtension($fileName);
 
+                $this->_eventManager->dispatch(
+                    'panda_import_connect_ftp',
+                    [
+                        'remote_file' => $fileName,
+                        'local_file'  => $localFile,
+                        'connection'  => $connId,
+                        'adapter'     => $this->importModel,
+                        'model'       => $this,
+                    ]
+                );
+
                 if ($extension != 'csv') {
                     $localFile = $this->convertToCsv($localFile, $extension);
                 }
@@ -683,6 +694,17 @@ class Import extends \Magento\Framework\Model\AbstractModel
             if (!$sftp->get($fileName, $localFile)) {
                 return false;
             }
+
+            $this->_eventManager->dispatch(
+                'panda_import_connect_sftp',
+                [
+                    'remote_file' => $fileName,
+                    'local_file'  => $localFile,
+                    'connection'  => $sftp,
+                    'adapter'     => $this->importModel,
+                    'model'       => $this,
+                ]
+            );
 
             $extension = $this->getFileExtension($fileName);
             if ($extension != 'csv') {
@@ -969,6 +991,7 @@ class Import extends \Magento\Framework\Model\AbstractModel
                     [
                         'file'    => $fullFileNamePath,
                         'adapter' => $this->importModel,
+                        'model'   => $this,
                     ]
                 );
 
@@ -1193,7 +1216,7 @@ class Import extends \Magento\Framework\Model\AbstractModel
                         $sftp->rename($fileName, $archiveDir . date('Y-m-d_H-i') . '_' . $this->getFileName());
                     }
                     if ($this->getAfterImport() == 'delete') {
-                        $sftp->delete($sftp, $fileName);
+                        $sftp->delete($fileName, false);
                     }
 
                     $images = $sftp->rawlist($this->getImportImagesFileDir());

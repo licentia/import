@@ -1111,7 +1111,7 @@ class Import extends \Magento\Framework\Model\AbstractModel
 
             }
 
-            if ($this->getAfterImport() == 'delete') {
+            if ($this->getAfterImport() == 'delete' && is_file($localFile)) {
                 $this->filesystem->getDirectoryWrite(DirectoryList::ROOT)
                                  ->delete($localFile);
             }

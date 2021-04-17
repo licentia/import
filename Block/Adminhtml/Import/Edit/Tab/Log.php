@@ -36,14 +36,14 @@ class Log extends \Magento\Backend\Block\Widget\Grid\Extended
     /**
      * @var \Magento\Framework\View\Model\PageLayout\Config\BuilderInterface
      */
-    protected \Magento\Framework\View\Model\PageLayout\Config\BuilderInterface $pageLayoutBuilder;
+    protected $pageLayoutBuilder;
 
     /**
      * Core registry
      *
      * @var \Magento\Framework\Registry
      */
-    protected ?\Magento\Framework\Registry $registry = null;
+    protected $registry = null;
 
     /**
      * Log constructor.

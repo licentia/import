@@ -31,7 +31,7 @@ class Import extends \Magento\Framework\Model\ResourceModel\Db\AbstractDb
     /**
      * @var string
      */
-    protected string $_idFieldName = 'record_id';
+    protected $_idFieldName = 'record_id';
 
     /**
      * Initialize resource model

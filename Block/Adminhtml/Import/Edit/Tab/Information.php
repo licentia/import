@@ -35,37 +35,37 @@ class Information extends \Magento\Backend\Block\Widget\Form\Generic
     /**
      * @var \Licentia\Import\Helper\Data
      */
-    protected \Licentia\Import\Helper\Data $importHelper;
+    protected $importHelper;
 
     /**
      * @var \Magento\Store\Model\System\Store
      */
-    protected \Magento\Store\Model\System\Store $systemStore;
+    protected $systemStore;
 
     /**
      * @var \Licentia\Import\Model\ImportFactory
      */
-    protected \Licentia\Import\Model\ImportFactory $importFactory;
+    protected $importFactory;
 
     /**
      * @var \Magento\ImportExport\Model\Source\Import\EntityFactory
      */
-    protected \Magento\ImportExport\Model\Source\Import\EntityFactory $_entityFactory;
+    protected $_entityFactory;
 
     /**
      * @var \Magento\ImportExport\Model\Source\Import\Behavior\Factory
      */
-    protected \Magento\ImportExport\Model\Source\Import\Behavior\Factory $_behaviorFactory;
+    protected $_behaviorFactory;
 
     /**
      * @var \Magento\Config\Model\Config\Source\Email\Identity
      */
-    protected \Magento\Config\Model\Config\Source\Email\Identity $emailIdentity;
+    protected $emailIdentity;
 
     /**
      * @var \Magento\Config\Model\Config\Source\Email\Template
      */
-    protected \Magento\Config\Model\Config\Source\Email\Template $emailTemplate;
+    protected $emailTemplate;
 
     /**
      * @var Import\ImageDirectoryBaseProvider

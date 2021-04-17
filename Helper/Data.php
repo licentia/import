@@ -31,12 +31,12 @@ class Data extends \Magento\Framework\App\Helper\AbstractHelper
     /**
      * @var \Magento\Framework\Stdlib\DateTime\DateTime
      */
-    protected \Magento\Framework\Stdlib\DateTime\DateTime $dateTime;
+    protected $dateTime;
 
     /**
      * @var \Magento\Framework\Encryption\EncryptorInterface
      */
-    protected \Magento\Framework\Encryption\EncryptorInterface $encryptor;
+    protected $encryptor;
 
     public function __construct(
         \Magento\Framework\Stdlib\DateTime\DateTime $dateTime,

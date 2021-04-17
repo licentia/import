@@ -67,82 +67,82 @@ class CronSchedule
     /**
      * @var array
      */
-    private $_minutes = [];
+    private array $_minutes = [];
 
     /**
      * @var array
      */
-    private $_hours = [];
+    private array $_hours = [];
 
     /**
      * @var array
      */
-    private $_daysOfMonth = [];
+    private array $_daysOfMonth = [];
 
     /**
      * @var array
      */
-    private $_months = [];
+    private array $_months = [];
 
     /**
      * @var array
      */
-    private $_daysOfWeek = [];
+    private array $_daysOfWeek = [];
 
     /**
      * @var array
      */
-    private $_years = [];
+    private array $_years = [];
 
     // The original cron specification in compiled form.
 
     /**
      * @var array
      */
-    private $_cronMinutes = [];
+    private array $_cronMinutes = [];
 
     /**
      * @var array
      */
-    private $_cronHours = [];
+    private array $_cronHours = [];
 
     /**
      * @var array
      */
-    private $_cronDaysOfMonth = [];
+    private array $_cronDaysOfMonth = [];
 
     /**
      * @var array
      */
-    private $_cronMonths = [];
+    private array $_cronMonths = [];
 
     /**
      * @var array
      */
-    private $_cronDaysOfWeek = [];
+    private array $_cronDaysOfWeek = [];
 
     /**
      * @var array
      */
-    private $_cronYears = [];
+    private array $_cronYears = [];
 
     // The language table
 
     /**
      * @var bool
      */
-    private $_lang = false;
+    private bool $_lang = false;
 
     /**
      * Minimum and maximum years to cope with the Year 2038 problem in UNIX. We run PHP which most likely runs on a
      * UNIX environment so we must assume vulnerability.
      */
-    protected $RANGE_YEARS_MIN = 1970;    // Must match date range supported by date(). See also: http://en.wikipedia.org/wiki/Year_2038_problem
+    protected int $RANGE_YEARS_MIN = 1970;    // Must match date range supported by date(). See also: http://en.wikipedia.org/wiki/Year_2038_problem
 
     /**
      * @var int
      */
-    protected $RANGE_YEARS_MAX = 2037;    // Must match date range supported by date(). See also: http://en.wikipedia.org/wiki/Year_2038_problem
+    protected int $RANGE_YEARS_MAX = 2037;    // Must match date range supported by date(). See also: http://en.wikipedia.org/wiki/Year_2038_problem
 
     /**
      * Function:    __construct

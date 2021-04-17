@@ -52,7 +52,7 @@ class Import extends \Magento\Framework\Model\AbstractModel
      *
      * @var string
      */
-    protected $_eventPrefix = 'panda_import';
+    protected string $_eventPrefix = 'panda_import';
 
     /**
      * Parameter name in event
@@ -61,22 +61,22 @@ class Import extends \Magento\Framework\Model\AbstractModel
      *
      * @var string
      */
-    protected $_eventObject = 'panda_import';
+    protected string $_eventObject = 'panda_import';
 
     /**
      * @var \Licentia\Import\Helper\Data
      */
-    protected $importHelper;
+    protected \Licentia\Import\Helper\Data $importHelper;
 
     /**
      * @var \Magento\Framework\Filesystem
      */
-    protected $filesystem;
+    protected \Magento\Framework\Filesystem $filesystem;
 
     /**
      * @var MagentoImport
      */
-    protected $importModel;
+    protected MagentoImport $importModel;
 
     /**
      * @var ImageDirectoryBaseProvider|mixed
@@ -86,32 +86,32 @@ class Import extends \Magento\Framework\Model\AbstractModel
     /**
      * @var \Magento\Framework\App\Config\ScopeConfigInterface
      */
-    protected $scopeConfig;
+    protected \Magento\Framework\App\Config\ScopeConfigInterface $scopeConfig;
 
     /**
      * @var \Magento\Framework\Mail\Template\TransportBuilder
      */
-    protected $transportBuilder;
+    protected \Magento\Framework\Mail\Template\TransportBuilder $transportBuilder;
 
     /**
      * @var \Magento\Store\Model\StoreManagerInterface
      */
-    protected $storeManager;
+    protected \Magento\Store\Model\StoreManagerInterface $storeManager;
 
     /**
      * @var \Magento\Framework\Translate\Inline\StateInterface
      */
-    protected $inlineTranslation;
+    protected \Magento\Framework\Translate\Inline\StateInterface $inlineTranslation;
 
     /**
      * @var \Magento\Framework\HTTP\Client\Curl
      */
-    protected $curl;
+    protected \Magento\Framework\HTTP\Client\Curl $curl;
 
     /**
      * @var LogFactory
      */
-    protected $logFactory;
+    protected LogFactory $logFactory;
 
     /**
      * Import constructor.
@@ -1111,7 +1111,7 @@ class Import extends \Magento\Framework\Model\AbstractModel
 
             }
 
-            if ($this->getAfterImport() == 'delete') {
+            if ($this->getAfterImport() === 'delete' && is_file($localFile)) {
                 $this->filesystem->getDirectoryWrite(DirectoryList::ROOT)
                                  ->delete($localFile);
             }

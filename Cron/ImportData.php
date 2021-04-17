@@ -35,7 +35,7 @@ class ImportData
     /**
      * @var \Licentia\Import\Model\ImportFactory
      */
-    protected $importFactory;
+    protected \Licentia\Import\Model\ImportFactory $importFactory;
 
     /**
      * UpdateSalesExtraCosts constructor.

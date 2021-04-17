@@ -34,17 +34,17 @@ class Mapping extends \Magento\Backend\Block\Widget\Form\Generic
     /**
      * @var \Licentia\Import\Helper\Data
      */
-    protected $importHelper;
+    protected \Licentia\Import\Helper\Data $importHelper;
 
     /**
      * @var \Magento\Store\Model\System\Store
      */
-    protected $systemStore;
+    protected \Magento\Store\Model\System\Store $systemStore;
 
     /**
      * @var \Licentia\Import\Model\ImportFactory
      */
-    protected $importFactory;
+    protected \Licentia\Import\Model\ImportFactory $importFactory;
 
     /**
      * Main constructor.

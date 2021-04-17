@@ -33,7 +33,7 @@ class Log extends \Magento\Framework\Model\AbstractModel
      *
      * @var string
      */
-    protected $_eventPrefix = 'panda_import_log';
+    protected string $_eventPrefix = 'panda_import_log';
 
     /**
      * Parameter name in event
@@ -42,7 +42,7 @@ class Log extends \Magento\Framework\Model\AbstractModel
      *
      * @var string
      */
-    protected $_eventObject = 'panda_import_log';
+    protected string $_eventObject = 'panda_import_log';
 
     /**
      * Initialize resource model

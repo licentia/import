@@ -31,7 +31,7 @@ class Entity implements \Magento\Framework\Option\ArrayInterface
     /**
      * @var \Magento\ImportExport\Model\Import\ConfigInterface
      */
-    protected $_importConfig;
+    protected \Magento\ImportExport\Model\Import\ConfigInterface $_importConfig;
 
     /**
      * @param \Magento\ImportExport\Model\Import\ConfigInterface $importConfig

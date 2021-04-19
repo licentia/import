@@ -926,7 +926,7 @@ class Import extends \Magento\Framework\Model\AbstractModel
                 }
 
                 $tmpResult = array_combine($map, $data);
-                $resultData[] = array_diff_key($tmpResult, array_keys($ignoreColumns));
+                $resultData[] = array_diff_key($tmpResult, array_flip($ignoreColumns));
 
             }
         }

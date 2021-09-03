@@ -523,11 +523,11 @@ class Import extends \Magento\Framework\Model\AbstractModel
         if ($this->getServerType() == 'local') {
 
             $fileDir = $this->getFileDirectory();
-            $fileName = $fileDir . $this->getFileName();
+            $localFile = $dirRead->getAbsolutePath($fileName);
 
-            $exists = $dirRead->isFile($fileName);
+            $exists = $dirRead->isFile($localFile);
 
-            if (!$exists) {
+            if (!is_file($localFile)) {
                 return false;
             }
 

@@ -489,6 +489,14 @@ class Import extends \Magento\Framework\Model\AbstractModel
 
         if ($data) {
 
+            foreach ($data as $key => $row) {
+                foreach ($row as $i => $index) {
+                    if (is_array($index) || is_object($index)) {
+                        $data[$key][$i] = '';
+                    }
+                }
+            }
+
             $fp = fopen($finalFile, 'w');
 
             $fieldSeparator = $this->getFieldSeparator();

@@ -109,7 +109,6 @@ class Information extends \Magento\Backend\Block\Widget\Form\Generic
         $this->importFactory = $importFactory;
         $this->systemStore = $systemStore;
         $this->_entityFactory = $entityFactory;
-        $this->_entityFactory = $entityFactory;
         $this->_behaviorFactory = $behaviorFactory;
         parent::__construct($context, $registry, $formFactory, $data);
         $this->imagesDirectoryProvider = $imageDirProvider

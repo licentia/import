@@ -489,6 +489,14 @@ class Import extends \Magento\Framework\Model\AbstractModel
 
         if ($data) {
 
+            foreach ($data as $key => $row) {
+                foreach ($row as $i => $index) {
+                    if (is_array($index) || is_object($index)) {
+                        $data[$key][$i] = '';
+                    }
+                }
+            }
+
             $fp = fopen($finalFile, 'w');
 
             $fieldSeparator = $this->getFieldSeparator();
@@ -926,7 +934,7 @@ class Import extends \Magento\Framework\Model\AbstractModel
                 }
 
                 $tmpResult = array_combine($map, $data);
-                $resultData[] = array_diff_key($tmpResult, array_keys($ignoreColumns));
+                $resultData[] = array_diff_key($tmpResult, array_flip($ignoreColumns));
 
             }
         }
@@ -1111,7 +1119,7 @@ class Import extends \Magento\Framework\Model\AbstractModel
 
             }
 
-            if ($this->getAfterImport() == 'delete') {
+            if ($this->getAfterImport() == 'delete' && is_file($localFile)) {
                 $this->filesystem->getDirectoryWrite(DirectoryList::ROOT)
                                  ->delete($localFile);
             }
